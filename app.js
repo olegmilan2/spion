@@ -346,44 +346,114 @@ const GENERATED_ROLE_CONFIG = {
   vip: { prefixes: ['Персональный', 'Приватный', 'Элитный', 'Премиальный', 'Клубный', 'Закрытый', 'Личный', 'Статусный', 'Ведущий', 'Старший'], bases: ['ассистент', 'консьерж', 'сомелье', 'аукционист', 'куратор коллекции', 'ивент-менеджер', 'стилист', 'водитель', 'PR-агент', 'менеджер VIP-зоны'] }
 };
 
+const TARGET_GENERATED_LOCATIONS = 2000;
+const TARGET_GENERATED_ROLES = 2000;
+
+const LOCATION_ROOTS_BY_CATEGORY = {
+  general: ['Площадка', 'Квартал', 'Павильон', 'Центр', 'Сектор', 'Коридор', 'Комплекс', 'Двор', 'Переход', 'Пункт', 'Зал', 'Блок'],
+  cinema: ['Кинозал', 'Павильон', 'Гримерка', 'Студия', 'Кастинг', 'Декорация', 'Монтаж', 'Прокат', 'Сцена', 'Архив', 'Реквизит', 'Постер'],
+  sport: ['Арена', 'Стадион', 'Манеж', 'Корт', 'Трибуна', 'Раздевалка', 'Бассейн', 'Трек', 'Сектор', 'Финиш', 'Старт', 'Турнир'],
+  travel: ['Терминал', 'Гейт', 'Перрон', 'Платформа', 'Причал', 'Порт', 'Рейс', 'Маршрут', 'Транзит', 'Посадка', 'Досмотр', 'Багаж'],
+  work: ['Офис', 'Цех', 'Склад', 'Лаборатория', 'Редакция', 'Коворкинг', 'Диспетчер', 'Ресепшен', 'Отдел', 'Проект', 'Линия', 'Бухгалтерия'],
+  history: ['Архив', 'Музей', 'Экспозиция', 'Галерея', 'Фонд', 'Крепость', 'Раскопки', 'Летопись', 'Коллекция', 'Витрина', 'Зал', 'Павильон'],
+  tech: ['Сервер', 'Кластер', 'Прототип', 'Модуль', 'Роболаб', 'Датчик', 'Алгоритм', 'Робот', 'Линия', 'Канал', 'Хаб', 'Стенд'],
+  crime: ['Допрос', 'Следствие', 'Улики', 'Протокол', 'Периметр', 'Конвой', 'Надзор', 'Пост', 'Экспертиза', 'Операция', 'Штаб', 'Архив'],
+  extreme: ['Склон', 'Маршрут', 'Лагерь', 'Спуск', 'Подъем', 'Трасса', 'Связка', 'Рафтинг', 'Сектор', 'База', 'Пик', 'Порог'],
+  vip: ['Лаунж', 'Пентхаус', 'Салон', 'Бутик', 'Аукцион', 'Резиденция', 'Клуб', 'Павильон', 'Показ', 'Прием', 'Галерея', 'Яхта']
+};
+
+const LOCATION_TAGS_BY_CATEGORY = {
+  general: ['города', 'района', 'сервиса', 'входа', 'выдачи', 'контроля', 'потока', 'регистра', 'смены', 'приема', 'маршрута', 'отдыха', 'доступа', 'обмена', 'связи', 'логистики', 'охраны'],
+  cinema: ['кадра', 'дубля', 'сцены', 'показа', 'кастинга', 'премьеры', 'звука', 'света', 'сюжета', 'жанра', 'триллера', 'комедии', 'драмы', 'фестиваля', 'проката', 'трейлера', 'эфира'],
+  sport: ['матча', 'финала', 'старта', 'финиша', 'тренинга', 'турнира', 'сезона', 'нагрузки', 'команды', 'рекорда', 'подачи', 'разминки', 'забега', 'спринта', 'протокола', 'трибуны', 'разбора'],
+  travel: ['рейса', 'маршрута', 'терминала', 'посадки', 'досмотра', 'багажа', 'перрона', 'транзита', 'стыковки', 'переезда', 'причала', 'курса', 'туризма', 'навигации', 'чартеров', 'потока', 'вылета'],
+  work: ['проекта', 'смены', 'офиса', 'цеха', 'линии', 'заказа', 'контроля', 'ресурса', 'учета', 'логистики', 'поддержки', 'процесса', 'поставки', 'документа', 'брифинга', 'выпуска', 'графика'],
+  history: ['архива', 'фонда', 'раскопок', 'экспозиции', 'эпохи', 'летописи', 'коллекции', 'манускрипта', 'витрины', 'реставрации', 'экспедиции', 'памяти', 'династии', 'реликвии', 'каталога', 'музея', 'наследия'],
+  tech: ['кластера', 'сервера', 'прототипа', 'кода', 'релиза', 'датчика', 'модуля', 'сети', 'алгоритма', 'робота', 'канала', 'теста', 'облака', 'интеграции', 'автоматики', 'безопасности', 'аналитики'],
+  crime: ['дела', 'улики', 'допроса', 'протокола', 'слежки', 'периметра', 'конвоя', 'экспертизы', 'надзора', 'архива', 'поиска', 'операции', 'задержания', 'проверки', 'контроля', 'процесса', 'свидетеля'],
+  extreme: ['маршрута', 'склона', 'лагеря', 'спуска', 'подъема', 'трассы', 'связки', 'сплава', 'восхождения', 'погоды', 'этапа', 'пункта', 'перевала', 'шторма', 'ледника', 'рывка', 'финиша'],
+  vip: ['клиента', 'зала', 'сервиса', 'приема', 'показа', 'сделки', 'аукциона', 'бренда', 'коллекции', 'протокола', 'поездки', 'статуса', 'резидента', 'лаунжа', 'капитала', 'мероприятия', 'галереи']
+};
+
+const ROLE_DOMAIN_BY_CATEGORY = {
+  general: ['зала', 'сервиса', 'квартала', 'центра', 'пункта', 'доступа', 'смены', 'приема', 'контроля', 'площадки', 'потока', 'регистра'],
+  cinema: ['кадра', 'сцены', 'монтажа', 'дубля', 'кастинга', 'павильона', 'гримма', 'света', 'звука', 'сюжета', 'проката', 'показа'],
+  sport: ['команды', 'арены', 'матча', 'старта', 'финиша', 'разминки', 'турнира', 'рекорда', 'сектора', 'трибуны', 'протокола', 'нагрузки'],
+  travel: ['рейса', 'маршрута', 'терминала', 'посадки', 'досмотра', 'багажа', 'перрона', 'транзита', 'стыковки', 'переезда', 'причала', 'курса'],
+  work: ['проекта', 'смены', 'офиса', 'цеха', 'линии', 'заказа', 'контроля', 'ресурса', 'учета', 'логистики', 'поддержки', 'процесса'],
+  history: ['архива', 'фонда', 'раскопок', 'экспозиции', 'эпохи', 'летописи', 'зала', 'коллекции', 'манускрипта', 'витрины', 'реставрации', 'экспедиции'],
+  tech: ['кластера', 'сервера', 'прототипа', 'кода', 'релиза', 'датчика', 'модуля', 'сети', 'алгоритма', 'робота', 'канала', 'теста'],
+  crime: ['дела', 'улики', 'допроса', 'протокола', 'слежки', 'периметра', 'конвоя', 'экспертизы', 'надзора', 'архива', 'поиска', 'операции'],
+  extreme: ['маршрута', 'склона', 'лагеря', 'спуска', 'подъема', 'трассы', 'связки', 'сплава', 'восхождения', 'погоды', 'этапа', 'пункта'],
+  vip: ['клиента', 'зала', 'сервиса', 'приема', 'показа', 'сделки', 'аукциона', 'бренда', 'коллекции', 'протокола', 'поездки', 'консьержа']
+};
+
 function buildGeneratedLocations() {
   const result = [];
-  Object.entries(GENERATED_LOCATION_CONFIG).forEach(([category, config]) => {
-    const names = [];
-    config.themes.forEach((theme) => {
-      config.roots.forEach((root) => {
-        names.push(`${theme} ${root}`);
+  const categories = Object.keys(LOCATION_ROOTS_BY_CATEGORY);
+  const perCategoryTarget = Math.max(1, Math.ceil(TARGET_GENERATED_LOCATIONS / Math.max(1, categories.length)));
+
+  categories.forEach((category) => {
+    const roots = LOCATION_ROOTS_BY_CATEGORY[category] || [];
+    const tags = LOCATION_TAGS_BY_CATEGORY[category] || [];
+    const combos = [];
+    const seen = new Set();
+
+    roots.forEach((root) => {
+      tags.forEach((tag) => {
+        const name = `${String(root || '').trim()} ${String(tag || '').trim()}`.replace(/\s+/g, ' ').trim();
+        const key = name.toLowerCase();
+        if (!name || seen.has(key)) return;
+        seen.add(key);
+        combos.push(name);
       });
     });
-    const uniqueNames = [];
-    const seen = new Set();
-    names.forEach((name) => {
-      const normalized = name.replace(/\s+/g, ' ').trim().toLowerCase();
-      if (!seen.has(normalized)) {
-        seen.add(normalized);
-        uniqueNames.push(name.replace(/\s+/g, ' ').trim());
-      }
-    });
-    uniqueNames.slice(0, 100).forEach((name, index) => {
+
+    combos.slice(0, perCategoryTarget).forEach((name, index) => {
       const bucket = index % 6;
       const difficulty = bucket < 2 ? 'easy' : bucket < 4 ? 'medium' : 'hard';
       result.push({ name, category, difficulty });
     });
   });
-  return result;
+
+  return result.slice(0, TARGET_GENERATED_LOCATIONS);
 }
 
 function buildGeneratedRolesByCategory() {
   const result = {};
   Object.entries(GENERATED_ROLE_CONFIG).forEach(([category, config]) => {
     const roles = [];
+    const domains = ROLE_DOMAIN_BY_CATEGORY[category] || [];
     config.prefixes.forEach((prefix) => {
       config.bases.forEach((base) => {
         roles.push(`${prefix} ${base}`);
       });
     });
-    result[category] = roles.slice(0, 100);
+
+    config.bases.forEach((base) => {
+      domains.forEach((domain) => {
+        roles.push(`${base} ${domain}`);
+      });
+    });
+
+    const uniqueRoles = [];
+    const seen = new Set();
+    roles.forEach((role) => {
+      const normalized = String(role || '').replace(/\s+/g, ' ').trim();
+      const key = normalized.toLowerCase();
+      if (!normalized || seen.has(key)) return;
+      seen.add(key);
+      uniqueRoles.push(normalized);
+    });
+    result[category] = uniqueRoles;
   });
+
+  const categories = Object.keys(result);
+  const perCategoryTarget = Math.max(1, Math.ceil(TARGET_GENERATED_ROLES / Math.max(1, categories.length)));
+  categories.forEach((category) => {
+    result[category] = result[category].slice(0, perCategoryTarget);
+  });
+
   return result;
 }
 
@@ -747,21 +817,32 @@ function getSpyUidsFromRoom(roomData) {
   return [];
 }
 
+function hasMaxTwoWords(name) {
+  const words = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return words.length > 0 && words.length <= 2;
+}
+
 function getLocationPool(category, difficulty) {
-  const filtered = LOCATIONS.filter((item) => {
+  const basePool = LOCATIONS.filter((item) => hasMaxTwoWords(item.name));
+  const sourcePool = basePool.length > 0 ? basePool : LOCATIONS;
+
+  const filtered = sourcePool.filter((item) => {
     const categoryOk = category === 'all' || item.category === category;
     const difficultyOk = difficulty === 'all' || item.difficulty === difficulty;
     return categoryOk && difficultyOk;
   });
   if (filtered.length > 0) return filtered;
 
-  const categoryOnly = LOCATIONS.filter((item) => category === 'all' || item.category === category);
+  const categoryOnly = sourcePool.filter((item) => category === 'all' || item.category === category);
   if (categoryOnly.length > 0) return categoryOnly;
 
-  const difficultyOnly = LOCATIONS.filter((item) => difficulty === 'all' || item.difficulty === difficulty);
+  const difficultyOnly = sourcePool.filter((item) => difficulty === 'all' || item.difficulty === difficulty);
   if (difficultyOnly.length > 0) return difficultyOnly;
 
-  return LOCATIONS;
+  return sourcePool;
 }
 
 function getHistoryKey(category, difficulty) {
@@ -2303,7 +2384,7 @@ if (roleRevealCard) {
         )
       );
       if (iAmSpy) {
-        triggerHaptic([16, 24, 16]);
+        triggerHaptic(45);
       }
       setRoleRevealMasked(false);
     }
