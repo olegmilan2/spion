@@ -535,6 +535,35 @@ select:focus {
   line-height: 1.3;
 }
 
+.chat-actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.chat-like-btn {
+  border: 1px solid #fdba74;
+  background: #fff7ed;
+  color: #7c2d12;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 100ms ease, background-color 100ms ease;
+}
+
+.chat-like-btn:hover {
+  transform: translateY(-1px);
+  background: #ffedd5;
+}
+
+.chat-like-btn.liked {
+  border-color: #fb923c;
+  background: #fed7aa;
+}
+
 .chat-compose {
   display: flex;
   gap: 8px;

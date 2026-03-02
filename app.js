@@ -1235,8 +1235,25 @@ function renderChat() {
     text.className = 'chat-text';
     text.textContent = msg.text || '';
 
+    const actions = document.createElement('div');
+    actions.className = 'chat-actions';
+    const likes = msg.likes && typeof msg.likes === 'object' ? msg.likes : {};
+    const likeCount = Object.values(likes).filter(Boolean).length;
+    const likedByMe = likes[state.myId] === true;
+
+    const likeBtn = document.createElement('button');
+    likeBtn.type = 'button';
+    likeBtn.className = `chat-like-btn${likedByMe ? ' liked' : ''}`;
+    likeBtn.textContent = `👍 ${likeCount}`;
+    likeBtn.addEventListener('click', () => {
+      toggleChatLike(msg);
+    });
+
+    actions.appendChild(likeBtn);
+
     li.appendChild(meta);
     li.appendChild(text);
+    li.appendChild(actions);
     chatMessages.appendChild(li);
   });
 
@@ -1271,11 +1288,27 @@ async function sendChatMessage() {
       senderUid: state.authUid,
       roundNumber: state.roomData.roundNumber || 1,
       text: text.slice(0, 180),
+      likes: {},
       createdAt: serverTimestamp()
     });
     chatInput.value = '';
   } catch (error) {
     gameStatus.textContent = `Ошибка отправки в чат: ${error.message}`;
+  }
+}
+
+async function toggleChatLike(message) {
+  if (!state.db || !state.roomCode || !message?.id) return;
+  const likes = message.likes && typeof message.likes === 'object' ? message.likes : {};
+  const likedByMe = likes[state.myId] === true;
+  const fieldPath = `likes.${state.myId}`;
+
+  try {
+    await updateDoc(chatMessageRef(message.id), {
+      [fieldPath]: likedByMe ? deleteField() : true
+    });
+  } catch (error) {
+    gameStatus.textContent = `Ошибка лайка: ${error.message}`;
   }
 }
 
@@ -1409,6 +1442,10 @@ function voteRef(voterId) {
 
 function chatCollectionRef() {
   return collection(state.db, 'rooms', state.roomCode, 'chat');
+}
+
+function chatMessageRef(messageId) {
+  return doc(state.db, 'rooms', state.roomCode, 'chat', messageId);
 }
 
 async function recoverRoomToLobby() {
