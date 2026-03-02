@@ -777,7 +777,7 @@ function renderRoom() {
   const roomSpyMode = room.spyMode || state.spyMode || 'blind';
   categoryInput.value = roomCategory;
   difficultyInput.value = roomDifficulty;
-  spyCountInput.value = String(roomSpyCount);
+  spyCountInput.value = String(Math.max(1, Math.min(2, roomSpyCount)));
   setSpyModeUI(roomSpyMode);
   lobbyRoomText.textContent = `Комната: ${state.roomCode}`;
   roundText.textContent = `Раунд #${roundNumber}`;
@@ -1068,8 +1068,8 @@ async function joinRoom() {
     return;
   }
 
-  if (!Number.isInteger(spyCount) || spyCount < 1 || spyCount > Math.max(1, expected - 1)) {
-    joinError.textContent = 'Количество шпионов должно быть от 1 до (игроков - 1).';
+  if (!Number.isInteger(spyCount) || ![1, 2].includes(spyCount) || spyCount > Math.max(1, expected - 1)) {
+    joinError.textContent = 'Количество шпионов: только 1 или 2 (и не больше игроков-1).';
     return;
   }
 
@@ -1129,8 +1129,8 @@ async function startRound() {
     return;
   }
 
-  if (spyCount < 1 || spyCount >= eligiblePlayers.length) {
-    lobbyStatus.textContent = `Некорректное число шпионов: ${spyCount}.`;
+  if (![1, 2].includes(spyCount) || spyCount >= eligiblePlayers.length) {
+    lobbyStatus.textContent = `Некорректное число шпионов: ${spyCount}. Разрешено только 1 или 2.`;
     return;
   }
 
@@ -1237,8 +1237,8 @@ async function resetRound() {
     return;
   }
 
-  if (spyCount < 1 || spyCount >= eligiblePlayers.length) {
-    gameStatus.textContent = `Некорректное число шпионов: ${spyCount}.`;
+  if (![1, 2].includes(spyCount) || spyCount >= eligiblePlayers.length) {
+    gameStatus.textContent = `Некорректное число шпионов: ${spyCount}. Разрешено только 1 или 2.`;
     return;
   }
 
@@ -1353,7 +1353,7 @@ function restoreInputs() {
   nameInput.value = state.myName;
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
-  spyCountInput.value = String(Math.max(1, Math.min(4, state.spyCount || 1)));
+  spyCountInput.value = String(Math.max(1, Math.min(2, state.spyCount || 1)));
   setSpyModeUI(state.spyMode === 'known' ? 'known' : 'blind');
   categoryInput.value = state.locationCategory;
   difficultyInput.value = state.locationDifficulty;
