@@ -1317,8 +1317,9 @@ function renderRoom() {
     const spyUids = getSpyUidsFromRoom(room);
     const iAmSpy = spyIds.includes(state.myId) || spyUids.includes(state.authUid);
     const revealToken = buildRoundRevealToken(room);
+    const playersReady = state.players.length > 0;
 
-    if (room.state === 'started' && revealToken !== state.lastRevealToken) {
+    if (room.state === 'started' && playersReady && revealToken !== state.lastRevealToken) {
       state.lastRevealToken = revealToken;
       showRoleReveal(room, iAmSpy, iAmEliminated);
     }
