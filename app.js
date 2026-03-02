@@ -149,6 +149,124 @@ const LOCATIONS = [
   { name: 'Закулисье люкс-показа', category: 'vip', difficulty: 'hard' }
 ];
 
+const ODESSA_FEATURED_LOCATIONS = [
+  { name: 'Привоз (Рыбный ряд)', zone: 'trade', roles: ['Продавщица бычков', 'Покупатель с весами', 'Чистильщик рыбы', 'Грузчик на тележке', 'Инспектор санстанции'] },
+  { name: 'Староконный рынок', zone: 'trade', roles: ['Продавец антиквариата', 'Заводчик голубей', 'Коллекционер марок', 'Покупатель винила', 'Зевака в кепке'] },
+  { name: 'Рынок "7-й километр"', zone: 'trade', roles: ['Владелец контейнера', 'Оптовик из Молдавии', 'Валютчик', 'Разносчик чая и обедов', 'Носильщик с баулом'] },
+  { name: 'Рынок "Книжка"', zone: 'trade', roles: ['Букинист', 'Продавец импортного шоколада', 'Меломан', 'Полицейский в гражданском', 'Меняла'] },
+  { name: 'Новый рынок', zone: 'trade', roles: ['Мясник', 'Бабушка с соленьями', 'Постоянный покупатель', 'Рубщик мяса', 'Хозяин цветочной лавки'] },
+  { name: 'Воронцовский маяк', zone: 'sea', roles: ['Смотритель маяка', 'Техник по связи', 'Морской пограничник', 'Чайка на перилах', 'Капитан катера'] },
+  { name: 'Пляж "Аркадия"', zone: 'sea', roles: ['Спасатель на вышке', 'Продавец пахлавы', 'Турист в шезлонге', 'Инструктор по сап-серфингу', 'Аниматор'] },
+  { name: 'Морвокзал', zone: 'sea', roles: ['Диспетчер порта', 'Таможенник', 'Матрос круизного лайнера', 'Провожающий', 'Сотрудник дьюти-фри'] },
+  { name: 'Яхт-клуб', zone: 'sea', roles: ['Владелец яхты', 'Боцман', 'Инструктор по парусному спорту', 'Официант прибрежного бара', 'Сын миллионера'] },
+  { name: 'Пляж "Ланжерон"', zone: 'sea', roles: ['Пловец в ластах', 'Бабушка под зонтиком', 'Мастер по временным татуировкам', 'Уличный фотограф', 'Массажист'] },
+  { name: 'Дельфинарий "Немо"', zone: 'sea', roles: ['Тренер дельфинов', 'Ведущий шоу', 'Ветеринар', 'Ребенок в первом ряду', 'Уборщик бассейна'] },
+  { name: 'Трасса здоровья', zone: 'sea', roles: ['Бегун в наушниках', 'Велосипедист', 'Роллер', 'Пенсионер на прогулке', 'Водитель электрокара'] },
+  { name: 'Оперный театр', zone: 'culture', roles: ['Прима-балерина', 'Оперный тенор', 'Дирижер', 'Билетерша', 'Костюмер за кулисами'] },
+  { name: 'Одесская киностудия', zone: 'culture', roles: ['Режиссер', 'Гример', 'Актер массовки', 'Осветитель', 'Сценарист с сигаретой'] },
+  { name: 'Катакомбы', zone: 'culture', roles: ['Проводник-диггер', 'Спелеолог', 'Напуганный турист', 'Историк', 'Партизан из легенд'] },
+  { name: 'Музей коньяка "Шустов"', zone: 'culture', roles: ['Сомелье', 'Технолог производства', 'Экскурсовод', 'Дегустатор', 'Охранник погреба'] },
+  { name: 'Филармония', zone: 'culture', roles: ['Скрипач-виртуоз', 'Настройщик рояля', 'Пожилая меломанка', 'Вахтер', 'Ударник'] },
+  { name: 'Зеленый театр', zone: 'culture', roles: ['Организатор фестиваля', 'Волонтер', 'Слушатель лекции', 'Продавец эко-еды', 'Хипстер на пуфике'] },
+  { name: 'Литературный музей', zone: 'culture', roles: ['Научный сотрудник', 'Поэт-графоман', 'Школьник на экскурсии', 'Смотритель зала', 'Меценат'] },
+  { name: 'Дворик на Молдаванке', zone: 'life', roles: ['Соседка на балконе', 'Сантехник из ЖЭКа', 'Игрок в домино', 'Местная сплетница', 'Электрик на лестнице'] },
+  { name: 'Улица Дерибасовская', zone: 'life', roles: ['Уличный музыкант', 'Промоутер в костюме панды', 'Мим', 'Полицейский патруль', 'Зевака'] },
+  { name: 'Трамвай №5', zone: 'life', roles: ['Вагоновожатый', 'Кондуктор', 'Пассажир с авоськой', 'Студент-зацепер', 'Карманник'] },
+  { name: 'ЖД Вокзал', zone: 'life', roles: ['Диспетчер вокзала', 'Проводник поезда', 'Таксист-зазывала', 'Пассажир с чемоданом', 'Носильщик'] },
+  { name: 'Городской сад', zone: 'life', roles: ['Художник-портретист', 'Пенсионер на лавочке', 'Мама с коляской', 'Садовник', 'Влюбленная пара'] },
+  { name: 'Пассаж', zone: 'life', roles: ['Владелец бутика', 'Фотомодель', 'Архитектор-реставратор', 'Уборщица', 'Шопоголик'] },
+  { name: 'Мэрия (Думская площадь)', zone: 'life', roles: ['Депутат', 'Секретарша', 'Журналист', 'Охранник на входе', 'Активист с плакатом'] },
+  { name: 'Аэропорт Одесса', zone: 'life', roles: ['Пилот', 'Стюардесса', 'Сотрудник досмотра', 'Пиар-менеджер авиакомпании', 'Опоздавший пассажир'] },
+  { name: 'Стадион "Черноморец"', zone: 'life', roles: ['Футболист', 'Тренер', 'Разъяренный фанат', 'Комментатор', 'Стюард на трибуне'] },
+  { name: 'Клуб "Ибица"', zone: 'life', roles: ['Диджей', 'Танцовщица Go-Go', 'Бармен', 'Фейс-контрольщик', 'Тусовщик'] },
+  { name: 'Ресторан "Компот"', zone: 'food', roles: ['Официант', 'Шеф-повар', 'Посудомойка', 'Администратор', 'Постоянный гость'] },
+  { name: 'Пункт Одесса', zone: 'life', roles: ['Полицейский', 'Дворник', 'Мэр', 'Учитель', 'Почтальон'] }
+];
+
+const ODESSA_ADDITIONAL_LOCATION_NAMES = [
+  'Тещин мост', 'Дом с атлантами', 'Шахский дворец', 'Кирха', 'Синагога на Еврейской',
+  'Арабский культурный центр', 'Морская академия Вышка', 'Политехнический университет',
+  'Университет им. Мечникова', 'Парк Шевченко', 'Луна-парк', 'Колесо обозрения',
+  'Памятник Дюку', 'Потемкинская лестница', 'Фуникулер', 'Пляж Отрада', 'Канатная дорога',
+  '16-я станция Фонтана', 'Дача Ковалевского', 'Монастырь на 16-й', 'Куяльницкий лиман',
+  'Грязелечебница', 'Санаторий им. Чкалова', 'Ботанический сад', 'Зоопарк',
+  'Радиорынок', 'Малая Арнаутская', 'Тираспольская площадь',
+  'Екатерининская площадь', 'Портовый кран', 'Элеватор в порту', 'Сухогруз на рейде',
+  'Будка с шаурмой', 'Ателье на Ришельевской', 'Ломбард на Пантелеймоновской',
+  'Магазин Обжора', 'Привоз молочный корпус', 'Склад конфиската', 'Таможенный терминал',
+  'Автошкола на Таирова', 'СТО на Пересыпи', 'Заправка SOCAR', 'Штрафплощадка',
+  'Больница им. Мечникова', 'Психбольница на Воробьева', 'Тюрьма на Люстдорфской',
+  'Офис IT-компании', 'Коворкинг в центре', 'Бар Гамбринус', 'Паб Друзья',
+  'Подземный переход', 'Крыша отеля Бристоль', 'Балкон на Пушкинской', 'Парадная с лепниной',
+  'Музей восковых фигур', 'Археологический музей', 'Грот художественного музея',
+  'Подземный бар', 'Секретное казино', 'Бильярдный клуб', 'Ночной клуб Пале-Рояль',
+  'Столовая в порту', 'Раздевалка стадиона', 'Берег Хаджибейского лимана', 'Дачный массив',
+  'Виноградник под Одессой', 'Винзавод Таирово', 'Подвал НКВД', 'Старая голубятня',
+  'Маяк на краю мола', 'Буксир в акватории'
+];
+
+const ODESSA_FALLBACK_ROLES = [
+  'Тетя Соня', 'Дядя Изя', 'Моряк дальнего плавания', 'Продавщица бычков', 'Модель из Аркадии',
+  'Студент Политеха', 'Владелец контейнера', 'Валютчик с Книжки', 'Экскурсовод', 'Капитан катера',
+  'Официант из «Дачи»', 'Гид по катакомбам', 'Оперная дива', 'Билетер трамвая', 'Карманник', 'Турист',
+  'Бабушка с балкона', 'Фотограф с обезьянкой', 'Таможенник', 'Диджей', 'Бармен', 'Фейс-контрольщик',
+  'Таксист', 'Грузчик с Привоза', 'Скупщик антиквариата', 'Коллекционер винила', 'Продавец шаурмы',
+  'Мастер по ремонту обуви', 'Чистильщик рыбы', 'Старый шахматист', 'Поэт', 'Мим', 'Полицейский патруль',
+  'Модельер', 'Владелец кофейни', 'Докер', 'Диспетчер вокзала', 'Проводница', 'Продавец пахлавы',
+  'Мастер тату', 'Тренер дельфинов', 'Режиссер киностудии', 'Актер массовки', 'Гримерша', 'Сценарист',
+  'Директор пляжа', 'Матрос', 'Инструктор по дайвингу', 'Смотритель маяка', 'Пограничник', 'Мама с коляской',
+  'Пенсионер-доминошник', 'Скрипач', 'Роллер', 'Скейтер', 'Цветочница', 'Швейцар', 'Администратор отеля',
+  'Депутат', 'Журналист', 'Блогер', 'Садовник', 'Ветеринар зоопарка', 'Клоун', 'Фокусник',
+  'Продавец семечек', 'Нотариус', 'Адвокат', 'Агент по недвижимости', 'Сварщик', 'Электрик', 'Сантехник',
+  'Почтальон', 'Кассирша', 'Футбольный фанат', 'Арбитр', 'Комментатор', 'Владелец яхты', 'Сомелье',
+  'Технолог завода', 'Букинист', 'Айтишник', 'Фрилансер', 'Студентка консерватории', 'Вахтерша',
+  'Комендант порта', 'Штурман', 'Кок', 'Диггер', 'Археолог', 'Историк', 'Реставратор',
+  'Владелец ломбарда', 'Коллекционер кошек', 'Городской сумасшедший', 'Девушка на выданье',
+  'Жених-иностранец', 'Инспектор санстанции', 'Скупщик валюты', 'Местный житель'
+];
+
+const ODESSA_LOCATION_ROLE_POOL = Object.fromEntries(
+  ODESSA_FEATURED_LOCATIONS.map((item) => [item.name, item.roles])
+);
+
+const ODESSA_KEYWORD_ROLE_POOL = [
+  { keys: ['рынок', 'привоз', 'книжка', 'километр'], roles: ['Продавец на рынке', 'Грузчик', 'Меняла', 'Покупатель', 'Контролер рынка'] },
+  { keys: ['пляж', 'море', 'порт', 'морвокзал', 'яхт', 'маяк', 'лиман', 'буксир'], roles: ['Моряк', 'Спасатель', 'Капитан катера', 'Лоцман', 'Таможенник'] },
+  { keys: ['театр', 'музей', 'филармон', 'киностуд', 'литератур', 'памятник', 'дворец'], roles: ['Экскурсовод', 'Смотритель музея', 'Актер', 'Режиссер', 'Искусствовед'] },
+  { keys: ['вокзал', 'аэропорт', 'трамвай', 'автошкола', 'заправка', 'сто'], roles: ['Диспетчер', 'Проводник', 'Таксист', 'Механик', 'Сотрудник досмотра'] },
+  { keys: ['стадион', 'клуб', 'ибица', 'бильярд'], roles: ['Футболист', 'Тренер', 'Диджей', 'Бармен', 'Фанат'] },
+  { keys: ['мэрия', 'думская', 'суд', 'тюрьм', 'нквд', 'казино'], roles: ['Полицейский', 'Следователь', 'Адвокат', 'Прокурор', 'Охранник'] }
+];
+
+function buildOdessaLocations() {
+  const allNames = [];
+  const seen = new Set();
+  [...ODESSA_FEATURED_LOCATIONS.map((item) => item.name), ...ODESSA_ADDITIONAL_LOCATION_NAMES].forEach((name) => {
+    const normalized = String(name || '').replace(/\s+/g, ' ').trim();
+    const key = normalized.toLowerCase();
+    if (!normalized || seen.has(key)) return;
+    seen.add(key);
+    allNames.push(normalized);
+  });
+  const targetNames = allNames.slice(0, 100);
+  const easyCount = 34;
+  const mediumCount = 33;
+  return targetNames.map((name, index) => ({
+    name,
+    category: 'odessa',
+    difficulty: index < easyCount ? 'easy' : index < easyCount + mediumCount ? 'medium' : 'hard'
+  }));
+}
+
+const ODESSA_LOCATIONS = buildOdessaLocations();
+
+const ODESSA_ROLES = Array.from(
+  new Set([
+    ...Object.values(ODESSA_LOCATION_ROLE_POOL).flat(),
+    ...ODESSA_FALLBACK_ROLES
+  ])
+).slice(0, 100);
+
 const EASY_GENERAL_WORDS = [
   'Парк', 'Сквер', 'Двор', 'Подъезд', 'Лифт', 'Крыша', 'Балкон', 'Остановка', 'Автобус', 'Троллейбус',
   'Трамвай', 'Метро', 'Перекресток', 'Светофор', 'Переход', 'Почта', 'Аптека', 'Булочная', 'Пекарня', 'Кофейня',
@@ -286,6 +404,9 @@ const CATEGORY_ROLE_POOL = {
     'Коллекционер', 'Охранник VIP-зоны', 'Ивент-менеджер', 'Имидж-стилист', 'Личный водитель',
     'Шеф-повар private dining', 'Директор бутика', 'Куратор частной галереи', 'Гольф-инструктор', 'Яхт-менеджер',
     'PR-агент звезды', 'Специалист VIP-лаунжа', 'Организатор закрытых показов', 'Инвестор', 'Гость пентхауса'
+  ],
+  odessa: [
+    ...ODESSA_ROLES
   ]
 };
 
@@ -494,7 +615,17 @@ const POP_CULTURE_ROLE_BY_CATEGORY = {
     'Индиана Джонс', 'Капитан Джек Воробей', 'Паддингтон', 'Моана', 'Филеас Фогг'
   ],
   sport: [
-    'Рокки Бальбоа', 'Крид', 'Майк Тайсон анимация', 'Лайтнинг Маккуин'
+    'Рокки Бальбоа', 'Крид', 'Майк Тайсон', 'Лайтнинг Маккуин',
+    'Лионель Месси', 'Криштиану Роналду', 'Килиан Мбаппе', 'Эрлинг Холанд',
+    'Зинедин Зидан', 'Пеле', 'Диего Марадона', 'Йохан Кройф',
+    'Роналдиньо', 'Неймар', 'Роберто Карлос', 'Андрес Иньеста',
+    'Хави', 'Лука Модрич', 'Тони Кроос', 'Карим Бензема',
+    'Серхио Рамос', 'Джанлуиджи Буффон', 'Мануэль Нойер', 'Икер Касильяс',
+    'Лев Яшин', 'Оливер Кан', 'Дэвид Бекхэм', 'Уэйн Руни',
+    'Тьерри Анри', 'Самюэль Этоо', 'Златан Ибрагимович', 'Роберт Левандовски',
+    'Мохамед Салах', 'Кевин Де Брейне', 'Вирджил ван Дейк', 'Сон Хын Мин',
+    'Гарет Бэйл', 'Садио Мане', 'Хосеп Гвардиола', 'Карло Анчелотти',
+    'Юрген Клопп', 'Арсен Венгер', 'Сэр Алекс Фергюсон', 'Жозе Моуринью'
   ],
   general: [
     'Мистер Бин', 'Паддингтон', 'Чебурашка', 'Винни Пух', 'Карлсон'
@@ -626,7 +757,8 @@ LOCATIONS.push(
     category: 'general',
     difficulty: 'easy'
   })),
-  ...buildGeneratedLocations()
+  ...buildGeneratedLocations(),
+  ...ODESSA_LOCATIONS
 );
 
 const generatedRolesByCategory = buildGeneratedRolesByCategory();
@@ -831,7 +963,7 @@ function setGameVariantUI(variant) {
 }
 
 function setCategoryUI(category) {
-  const allowed = ['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip'];
+  const allowed = ['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip', 'odessa'];
   const safeCategory = allowed.includes(category) ? category : 'all';
   categoryInput.value = safeCategory;
   if (categoryGrid) {
@@ -906,7 +1038,25 @@ function getCategoryRolePool(category) {
   return GENERIC_CIVILIAN_ROLES;
 }
 
+function getOdessaLocationRoles(locationName) {
+  const exact = ODESSA_LOCATION_ROLE_POOL[locationName];
+  if (Array.isArray(exact) && exact.length > 0) return exact;
+  const normalized = String(locationName || '').toLowerCase();
+  for (const entry of ODESSA_KEYWORD_ROLE_POOL) {
+    if (entry.keys.some((key) => normalized.includes(key))) {
+      return entry.roles;
+    }
+  }
+  return ODESSA_ROLES;
+}
+
 function getRolePoolForLocation(locationName, locationCategory) {
+  if (locationCategory === 'odessa') {
+    const merged = [];
+    appendUnique(merged, getOdessaLocationRoles(locationName));
+    appendUnique(merged, getCategoryRolePool('odessa'));
+    return merged;
+  }
   const lowerName = String(locationName || '').toLowerCase();
   for (const entry of KEYWORD_ROLE_POOL) {
     if (entry.keys.some((key) => lowerName.includes(key))) {
@@ -989,41 +1139,48 @@ function countWords(name) {
     .filter(Boolean).length;
 }
 
-function matchesDifficultyWordRule(item, difficulty) {
+function matchesDifficultyWordRule(item, difficulty, category) {
   const words = countWords(item?.name);
+  if (category === 'odessa') return words >= 1 && words <= 3;
   if (difficulty === 'hard') return words === 2;
   if (difficulty === 'easy' || difficulty === 'medium') return words === 1;
   return words <= 2;
 }
 
 function getLocationPool(category, difficulty) {
-  const basePool = LOCATIONS.filter((item) => hasMaxTwoWords(item.name));
+  const basePool = LOCATIONS.filter((item) => {
+    if (item.category === 'odessa') return countWords(item.name) <= 3;
+    return hasMaxTwoWords(item.name);
+  });
   const sourcePool = basePool.length > 0 ? basePool : LOCATIONS;
 
   const filtered = sourcePool.filter((item) => {
     const categoryOk = category === 'all' || item.category === category;
     const difficultyOk = difficulty === 'all' || item.difficulty === difficulty;
-    const shapeOk = matchesDifficultyWordRule(item, difficulty);
+    const shapeOk = matchesDifficultyWordRule(item, difficulty, category);
     return categoryOk && difficultyOk && shapeOk;
   });
   if (filtered.length > 0) return filtered;
 
   const categoryOnly = sourcePool.filter((item) => {
     const categoryOk = category === 'all' || item.category === category;
-    return categoryOk && matchesDifficultyWordRule(item, difficulty);
+    return categoryOk && matchesDifficultyWordRule(item, difficulty, category);
   });
   if (categoryOnly.length > 0) return categoryOnly;
 
   const difficultyOnly = sourcePool.filter((item) => {
     const difficultyOk = difficulty === 'all' || item.difficulty === difficulty;
-    return difficultyOk && matchesDifficultyWordRule(item, difficulty);
+    return difficultyOk && matchesDifficultyWordRule(item, difficulty, category);
   });
   if (difficultyOnly.length > 0) return difficultyOnly;
 
-  const byShapeOnly = sourcePool.filter((item) => matchesDifficultyWordRule(item, difficulty));
+  const byShapeOnly = sourcePool.filter((item) => matchesDifficultyWordRule(item, difficulty, category));
   if (byShapeOnly.length > 0) return byShapeOnly;
 
-  return sourcePool.filter((item) => hasMaxTwoWords(item.name));
+  return sourcePool.filter((item) => {
+    if (item.category === 'odessa') return countWords(item.name) <= 3;
+    return hasMaxTwoWords(item.name);
+  });
 }
 
 function getHistoryKey(category, difficulty) {
@@ -2172,7 +2329,7 @@ async function joinRoom() {
     return;
   }
 
-  if (!['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip'].includes(category)) {
+  if (!['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip', 'odessa'].includes(category)) {
     joinError.textContent = 'Неизвестная категория.';
     return;
   }
