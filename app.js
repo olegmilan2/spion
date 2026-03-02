@@ -214,6 +214,37 @@ const SPY_SECRET_ACTIONS = [
   'Скажи: "мне нужно уточнить формулировку"'
 ];
 
+const GENERIC_CIVILIAN_ROLES = [
+  'Администратор',
+  'Сотрудник',
+  'Посетитель',
+  'Охранник',
+  'Стажер',
+  'Техник',
+  'Клиент',
+  'Организатор',
+  'Координатор',
+  'Помощник',
+  'Менеджер смены',
+  'Наблюдатель'
+];
+
+const LOCATION_ROLE_POOL = {
+  Больница: ['Хирург', 'Терапевт', 'Медсестра', 'Пациент', 'Фельдшер', 'Рентгенолог', 'Регистратор', 'Санитар'],
+  Ресторан: ['Шеф-повар', 'Официант', 'Бармен', 'Администратор зала', 'Гость', 'Сомелье', 'Кондитер', 'Хостес'],
+  Кинотеатр: ['Кассир', 'Билетный контролер', 'Киномеханик', 'Зритель', 'Администратор', 'Уборщик зала', 'Охранник', 'Продавец попкорна'],
+  Аэропорт: ['Пилот', 'Бортпроводник', 'Диспетчер', 'Пассажир', 'Сотрудник досмотра', 'Работник стойки регистрации', 'Грузчик', 'Техник самолета'],
+  Школа: ['Учитель', 'Директор', 'Ученик', 'Завуч', 'Охранник', 'Библиотекарь', 'Психолог', 'Лаборант'],
+  Университет: ['Преподаватель', 'Студент', 'Декан', 'Ассистент кафедры', 'Лаборант', 'Куратор', 'Библиотекарь', 'Методист'],
+  Банк: ['Кассир', 'Кредитный менеджер', 'Клиент', 'Охранник', 'Руководитель отделения', 'Оператор', 'Инкассатор', 'Консультант'],
+  Стадион: ['Игрок', 'Тренер', 'Судья', 'Болельщик', 'Комментатор', 'Стюард', 'Массажист', 'Администратор арены'],
+  Отель: ['Администратор ресепшен', 'Портье', 'Горничная', 'Гость', 'Менеджер отеля', 'Охранник', 'Шеф-повар', 'Консьерж'],
+  Театр: ['Актер', 'Режиссер', 'Суфлер', 'Гример', 'Костюмер', 'Зритель', 'Билетный контролер', 'Осветитель'],
+  Суд: ['Судья', 'Прокурор', 'Адвокат', 'Секретарь', 'Свидетель', 'Подсудимый', 'Пристав', 'Слушатель'],
+  Музей: ['Экскурсовод', 'Смотритель', 'Реставратор', 'Куратор выставки', 'Посетитель', 'Охранник', 'Кассир', 'Научный сотрудник'],
+  Офис: ['Менеджер проекта', 'Разработчик', 'Дизайнер', 'HR-специалист', 'Бухгалтер', 'Стажер', 'Офис-менеджер', 'Аналитик']
+};
+
 LOCATIONS.push(
   ...EASY_GENERAL_WORDS.map((name) => ({
     name,
@@ -354,7 +385,8 @@ function setSpyCountUI(count) {
 }
 
 function setGameVariantUI(variant) {
-  gameVariantInput.value = variant === 'hide' ? 'hide' : 'classic';
+  const allowed = ['classic', 'classic_roles', 'hide'];
+  gameVariantInput.value = allowed.includes(variant) ? variant : 'classic';
   if (gameVariantGrid) {
     const cells = gameVariantGrid.querySelectorAll('.mode-cell');
     cells.forEach((cell) => {
@@ -380,9 +412,15 @@ function renderRules() {
   if (!rulesMeta || !rulesList) return;
   const spyCount = Number(spyCountInput.value) === 2 ? 2 : 1;
   const spyMode = spyModeInput.value === 'known' ? 'known' : 'blind';
-  const gameVariant = gameVariantInput.value === 'hide' ? 'hide' : 'classic';
+  const gameVariant = ['classic', 'classic_roles', 'hide'].includes(gameVariantInput.value)
+    ? gameVariantInput.value
+    : 'classic';
   const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
-  const gameVariantLabel = gameVariant === 'hide' ? 'прятки на виду' : 'классика';
+  const gameVariantLabel = gameVariant === 'hide'
+    ? 'прятки на виду'
+    : gameVariant === 'classic_roles'
+      ? 'классика с ролью'
+      : 'классика';
 
   rulesMeta.textContent = `Текущие правила: ${spyCount} шпион(а), режим ${spyModeLabel}, вариант ${gameVariantLabel}.`;
 
@@ -394,7 +432,9 @@ function renderRules() {
       : 'Режим "Вслепую": шпионы не знают, кто их напарник.',
     gameVariant === 'hide'
       ? 'Вариант "Прятки на виду": каждому шпиону дается секретное действие, которое нужно выполнить незаметно, без контакта с другими игроками.'
-      : 'Вариант "Классика": игра без секретных действий, только вопросы, ответы и дедукция.',
+      : gameVariant === 'classic_roles'
+        ? 'Вариант "Классика с ролью": мирные получают роль внутри локации (например, хирург в больнице), это делает обсуждение глубже.'
+        : 'Вариант "Классика": стандартная игра без секретных действий и без ролей мирных.',
     'После старта все получают карту роли: шпиону скрытая локация, мирным название локации.',
     'Во время обсуждения задавайте вопросы по локации, не раскрывая ее напрямую.',
     'В голосовании выберите подозреваемого: неверный выбор убирает игрока, а раунд продолжается.',
@@ -424,6 +464,28 @@ function pickDistinct(items, count) {
 
 function pickSecretActions(count) {
   return pickDistinct(SPY_SECRET_ACTIONS, count);
+}
+
+function getLocationRolePool(locationName) {
+  const direct = LOCATION_ROLE_POOL[locationName];
+  if (Array.isArray(direct) && direct.length > 0) return direct;
+  return GENERIC_CIVILIAN_ROLES;
+}
+
+function pickCivilianRoles(players, locationName) {
+  const pool = [...getLocationRolePool(locationName)];
+  const shuffledPlayers = pickDistinct(players, players.length);
+  const rolesByPlayer = {};
+
+  shuffledPlayers.forEach((player, index) => {
+    if (index < pool.length) {
+      rolesByPlayer[player.id] = pool[index];
+      return;
+    }
+    rolesByPlayer[player.id] = randomItem(pool);
+  });
+
+  return rolesByPlayer;
 }
 
 function getSpyIdsFromRoom(roomData) {
@@ -654,7 +716,11 @@ function showRoleReveal(roomData, iAmSpy, iAmEliminated) {
   } else {
     roleRevealTitle.className = 'role-reveal-title-safe';
     roleRevealTitle.textContent = 'Карта роли';
-    roleRevealText.textContent = `Роль: НЕ шпион. Локация: ${roomData.location || '-'}`;
+    const roleForMe = roomData.civilianRoles && typeof roomData.civilianRoles === 'object'
+      ? roomData.civilianRoles[state.myId]
+      : '';
+    const roleText = gameVariant === 'classic_roles' && roleForMe ? ` Роль: ${roleForMe}.` : '';
+    roleRevealText.textContent = `Роль: НЕ шпион.${roleText} Локация: ${roomData.location || '-'}`;
   }
 
   roleRevealModal.classList.remove('hidden');
@@ -1081,7 +1147,11 @@ function renderRoom() {
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
     const spyModeLabel = roomSpyMode === 'known' ? 'сговор' : 'вслепую';
-    const gameVariantLabel = roomGameVariant === 'hide' ? 'прятки на виду' : 'классика';
+    const gameVariantLabel = roomGameVariant === 'hide'
+      ? 'прятки на виду'
+      : roomGameVariant === 'classic_roles'
+        ? 'классика с ролью'
+        : 'классика';
     lobbyStatus.textContent = activeCount === expected
       ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
       : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
@@ -1134,6 +1204,7 @@ async function recoverRoomToLobby() {
       spyIds: [],
       spyUids: [],
       spyActions: {},
+      civilianRoles: {},
       spyId: deleteField(),
       spyUid: deleteField(),
       eliminatedPlayerId: deleteField(),
@@ -1192,7 +1263,11 @@ function subscribeRoom() {
         const spyMode = state.roomData.spyMode || state.spyMode || 'blind';
         const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
         const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
-        const gameVariantLabel = gameVariant === 'hide' ? 'прятки на виду' : 'классика';
+        const gameVariantLabel = gameVariant === 'hide'
+          ? 'прятки на виду'
+          : gameVariant === 'classic_roles'
+            ? 'классика с ролью'
+            : 'классика';
         const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
         const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
         lobbyStatus.textContent = activeCount === expected
@@ -1362,7 +1437,7 @@ async function joinRoom() {
     return;
   }
 
-  if (!['classic', 'hide'].includes(gameVariant)) {
+  if (!['classic', 'classic_roles', 'hide'].includes(gameVariant)) {
     joinError.textContent = 'Неизвестный вариант игры.';
     return;
   }
@@ -1430,6 +1505,7 @@ async function startRound() {
   const spyUids = spyPlayers.map((p) => p.uid || '').filter(Boolean);
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
+  const civilianPlayers = eligiblePlayers.filter((player) => !spyIds.includes(player.id));
   const spyActions = {};
   if (gameVariant === 'hide') {
     spyIds.forEach((spyId, index) => {
@@ -1452,6 +1528,7 @@ async function startRound() {
       }
 
       const { picked, updatedHistory } = pickLocationForRoom(data);
+      const civilianRoles = gameVariant === 'classic_roles' ? pickCivilianRoles(civilianPlayers, picked.name) : {};
 
       tx.update(room, {
         state: 'started',
@@ -1461,6 +1538,7 @@ async function startRound() {
         spyMode: data.spyMode || state.spyMode || 'blind',
         gameVariant: data.gameVariant || state.gameVariant || 'classic',
         spyActions: gameVariant === 'hide' ? spyActions : {},
+        civilianRoles,
         spyId: deleteField(),
         spyUid: deleteField(),
         location: picked.name,
@@ -1548,6 +1626,7 @@ async function resetRound() {
   const spyUids = spyPlayers.map((p) => p.uid || '').filter(Boolean);
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
+  const civilianPlayers = eligiblePlayers.filter((player) => !spyIds.includes(player.id));
   const spyActions = {};
   if (gameVariant === 'hide') {
     spyIds.forEach((spyId, index) => {
@@ -1567,6 +1646,7 @@ async function resetRound() {
       const data = snap.data();
       const nextRound = (data.roundNumber || 1) + 1;
       const { picked, updatedHistory } = pickLocationForRoom(data);
+      const civilianRoles = gameVariant === 'classic_roles' ? pickCivilianRoles(civilianPlayers, picked.name) : {};
 
       tx.update(room, {
         state: 'started',
@@ -1577,6 +1657,7 @@ async function resetRound() {
         spyMode: data.spyMode || state.spyMode || 'blind',
         gameVariant: data.gameVariant || state.gameVariant || 'classic',
         spyActions: gameVariant === 'hide' ? spyActions : {},
+        civilianRoles,
         spyId: deleteField(),
         spyUid: deleteField(),
         location: picked.name,
@@ -1666,7 +1747,7 @@ function restoreInputs() {
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
   setSpyCountUI(Math.max(1, Math.min(2, state.spyCount || 1)));
   setSpyModeUI(state.spyMode === 'known' ? 'known' : 'blind');
-  setGameVariantUI(state.gameVariant === 'hide' ? 'hide' : 'classic');
+  setGameVariantUI(state.gameVariant);
   setCategoryUI(state.locationCategory);
   difficultyInput.value = state.locationDifficulty;
   renderAvatarPreview(state.myAvatar, state.myName);
