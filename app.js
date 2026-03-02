@@ -237,6 +237,7 @@ function getHistoryKey(category, difficulty) {
 function pickLocationForRoom(roomData) {
   const category = roomData.locationCategory || 'all';
   const difficulty = roomData.locationDifficulty || 'all';
+  const previousLocationName = roomData.lastLocation || roomData.location || '';
   const historyKey = getHistoryKey(category, difficulty);
   const historyMap = roomData.locationHistory && typeof roomData.locationHistory === 'object'
     ? roomData.locationHistory
@@ -248,7 +249,8 @@ function pickLocationForRoom(roomData) {
   let nextUsed = used;
 
   if (available.length === 0) {
-    available = pool;
+    available = pool.filter((item) => item.name !== previousLocationName);
+    if (available.length === 0) available = pool;
     nextUsed = [];
   }
 
@@ -616,6 +618,7 @@ async function ensureRoomAndJoin() {
         locationCategory: state.locationCategory,
         locationDifficulty: state.locationDifficulty,
         locationHistory: {},
+        lastLocation: '',
         createdByUid: state.authUid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -767,6 +770,7 @@ async function startRound() {
         spyId: spyPlayer.id,
         spyUid: spyPlayer.uid || '',
         location: picked.name,
+        lastLocation: picked.name,
         locationCategory: data.locationCategory || 'all',
         locationDifficulty: data.locationDifficulty || 'all',
         locationHistory: updatedHistory,
@@ -854,6 +858,7 @@ async function resetRound() {
         winner: deleteField(),
         voteStage: deleteField(),
         resolvedVoteStage: deleteField(),
+        lastLocation: data.location || data.lastLocation || '',
         location: deleteField(),
         startedBy: deleteField(),
         startedAt: deleteField(),
