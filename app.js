@@ -209,6 +209,7 @@ const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const chatSendBtn = document.getElementById('chatSendBtn');
 const gameStatus = document.getElementById('gameStatus');
+const showRoleCardBtn = document.getElementById('showRoleCardBtn');
 const newRoundBtn = document.getElementById('newRoundBtn');
 const leaveFromGameBtn = document.getElementById('leaveFromGameBtn');
 const roleRevealModal = document.getElementById('roleRevealModal');
@@ -616,17 +617,11 @@ function renderRoom() {
       showRoleReveal(room, iAmSpy, iAmEliminated);
     }
 
-    if (iAmEliminated) {
-      roleCard.className = 'role-card wait';
-      roleCard.textContent = 'Режим ожидания';
-      roleHint.textContent = 'Ты выбыл из голосования. Дождись нового раунда.';
-    } else {
-      roleCard.className = `role-card ${iAmSpy ? 'spy' : 'safe'}`;
-      roleCard.textContent = iAmSpy ? 'Ты ШПИОН' : `Локация: ${room.location || '-'}`;
-      roleHint.textContent = iAmSpy
-        ? 'Задача: вычислить локацию и не выдать себя.'
-        : 'Задача: задавать вопросы и найти шпиона.';
-    }
+    roleCard.className = 'role-card';
+    roleCard.textContent = 'Личные данные роли скрыты в игре.';
+    roleHint.textContent = iAmEliminated
+      ? 'Ты в режиме ожидания. При необходимости открой карту кнопкой.'
+      : 'Если забыл роль, нажми "Показать карту".';
 
     if (room.state === 'finished' && room.lastVoteResult === 'spy_found') {
       roundAlert.className = 'round-alert success';
@@ -1113,6 +1108,13 @@ startRoundBtn.addEventListener('click', startRound);
 newRoundBtn.addEventListener('click', resetRound);
 leaveRoomBtn.addEventListener('click', leaveRoom);
 leaveFromGameBtn.addEventListener('click', leaveRoom);
+showRoleCardBtn.addEventListener('click', () => {
+  if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) return;
+  const me = state.players.find((player) => player.id === state.myId);
+  const iAmEliminated = me?.eliminated === true;
+  const iAmSpy = state.roomData.spyId === state.myId || state.roomData.spyUid === state.authUid;
+  showRoleReveal(state.roomData, iAmSpy, iAmEliminated);
+});
 chatSendBtn.addEventListener('click', sendChatMessage);
 roleRevealBtn.addEventListener('click', hideRoleReveal);
 chatInput.addEventListener('keydown', (event) => {
