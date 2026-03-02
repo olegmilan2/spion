@@ -804,6 +804,27 @@ const LOCAL_CATEGORY_KEY = 'spy_location_category';
 const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
 const AVATAR_MAX_BYTES = 90 * 1024;
 const AVATAR_MAX_SIDE = 192;
+const CATEGORY_LABELS = {
+  all: 'все',
+  general: 'общее',
+  cinema: 'кино',
+  sport: 'спорт',
+  travel: 'путешествия',
+  work: 'работа',
+  history: 'история',
+  tech: 'технологии',
+  crime: 'криминал',
+  extreme: 'экстрим',
+  vip: 'vip',
+  odessa: 'одесса',
+  countries: 'страны'
+};
+const DIFFICULTY_LABELS = {
+  all: 'любая',
+  easy: 'легкая',
+  medium: 'средняя',
+  hard: 'сложная'
+};
 
 const joinCard = document.getElementById('joinCard');
 const lobbyCard = document.getElementById('lobbyCard');
@@ -998,6 +1019,14 @@ function setCategoryUI(category) {
       cell.classList.toggle('active', cell.dataset.category === safeCategory);
     });
   }
+}
+
+function formatCategoryLabel(category) {
+  return CATEGORY_LABELS[category] || CATEGORY_LABELS.all;
+}
+
+function formatDifficultyLabel(difficulty) {
+  return DIFFICULTY_LABELS[difficulty] || DIFFICULTY_LABELS.all;
 }
 
 function renderRules() {
@@ -2053,9 +2082,11 @@ function renderRoom() {
       : roomGameVariant === 'classic_roles'
         ? 'классика с ролью'
         : 'классика';
+    const roomCategoryLabel = formatCategoryLabel(roomCategory);
+    const roomDifficultyLabel = formatDifficultyLabel(roomDifficulty);
     lobbyStatus.textContent = activeCount === expected
-      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
-      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
+      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
+      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`;
   }
 }
 
@@ -2176,9 +2207,11 @@ function subscribeRoom() {
             : 'классика';
         const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
         const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
+        const roomCategoryLabel = formatCategoryLabel(roomCategory);
+        const roomDifficultyLabel = formatDifficultyLabel(roomDifficulty);
         lobbyStatus.textContent = activeCount === expected
-          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
-          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
+          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
+          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`;
       }
     },
     (error) => {
@@ -2256,7 +2289,7 @@ async function ensureRoomAndJoin() {
       }
 
       if (
-        data.ownerId === state.myId &&
+        (data.ownerId === state.myId || data.lobbyStarterId === state.myId) &&
         (currentExpected !== state.expectedPlayers ||
           currentSpyCount !== state.spyCount ||
           currentSpyMode !== state.spyMode ||
