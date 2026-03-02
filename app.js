@@ -354,8 +354,18 @@ function buildGeneratedLocations() {
         names.push(`${theme} ${root}`);
       });
     });
-    names.slice(0, 100).forEach((name, index) => {
-      const difficulty = index % 3 === 0 ? 'easy' : index % 3 === 1 ? 'medium' : 'hard';
+    const uniqueNames = [];
+    const seen = new Set();
+    names.forEach((name) => {
+      const normalized = name.replace(/\s+/g, ' ').trim().toLowerCase();
+      if (!seen.has(normalized)) {
+        seen.add(normalized);
+        uniqueNames.push(name.replace(/\s+/g, ' ').trim());
+      }
+    });
+    uniqueNames.slice(0, 100).forEach((name, index) => {
+      const bucket = index % 6;
+      const difficulty = bucket < 2 ? 'easy' : bucket < 4 ? 'medium' : 'hard';
       result.push({ name, category, difficulty });
     });
   });
@@ -678,8 +688,15 @@ function getLocationPool(category, difficulty) {
     const difficultyOk = difficulty === 'all' || item.difficulty === difficulty;
     return categoryOk && difficultyOk;
   });
+  if (filtered.length > 0) return filtered;
 
-  return filtered.length > 0 ? filtered : LOCATIONS;
+  const categoryOnly = LOCATIONS.filter((item) => category === 'all' || item.category === category);
+  if (categoryOnly.length > 0) return categoryOnly;
+
+  const difficultyOnly = LOCATIONS.filter((item) => difficulty === 'all' || item.difficulty === difficulty);
+  if (difficultyOnly.length > 0) return difficultyOnly;
+
+  return LOCATIONS;
 }
 
 function getHistoryKey(category, difficulty) {
