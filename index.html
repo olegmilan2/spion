@@ -48,11 +48,19 @@
         <p>Все роли выданы. Начинайте вопросы и ищите шпиона.</p>
         <button id="hostRevealBtn" class="btn">Показать ответ для ведущего</button>
         <p id="hostAnswer" class="host-answer hidden"></p>
+        <p id="firebaseStatus" class="firebase-status"></p>
         <button id="newRoundBtn" class="btn btn-primary">Новый раунд</button>
       </div>
     </section>
+
+    <section class="card feed-card">
+      <h2>Общая лента раундов</h2>
+      <p id="liveRoundsStatus" class="hint">Подключение к общей базе...</p>
+      <ul id="liveRoundsList" class="live-rounds"></ul>
+    </section>
   </main>
 
-  <script src="./app.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
