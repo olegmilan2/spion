@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Шпион — Party Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="bg-shape bg-shape-a"></div>
+  <div class="bg-shape bg-shape-b"></div>
+  <main class="layout">
+    <section class="card setup-card" id="setupCard">
+      <p class="eyebrow">Party Game</p>
+      <h1>ШПИОН</h1>
+      <p class="lead">Один игрок не знает локацию. Остальные пытаются вычислить шпиона по вопросам.</p>
+
+      <label for="playersInput" class="label">Игроки (через запятую или с новой строки)</label>
+      <textarea id="playersInput" rows="6" placeholder="Олег, Аня, Дима, Ира"></textarea>
+
+      <label for="minutesInput" class="label">Длительность раунда (минуты)</label>
+      <input id="minutesInput" type="number" min="1" max="30" value="8">
+
+      <button id="startBtn" class="btn btn-primary">Начать раунд</button>
+      <p id="setupError" class="error"></p>
+    </section>
+
+    <section class="card game-card hidden" id="gameCard">
+      <div class="topbar">
+        <p id="progressText">Игрок 1 из 4</p>
+        <p id="timerText">08:00</p>
+      </div>
+
+      <h2 id="playerName">Игрок</h2>
+      <p id="hintText" class="hint">Нажми кнопку, чтобы увидеть роль.</p>
+
+      <div id="roleCard" class="role-card hidden"></div>
+
+      <div class="actions">
+        <button id="showRoleBtn" class="btn btn-primary">Показать роль</button>
+        <button id="nextBtn" class="btn hidden">Скрыть и передать</button>
+      </div>
+
+      <div id="roundEnd" class="round-end hidden">
+        <p>Все роли выданы. Начинайте вопросы и ищите шпиона.</p>
+        <button id="hostRevealBtn" class="btn">Показать ответ для ведущего</button>
+        <p id="hostAnswer" class="host-answer hidden"></p>
+        <button id="newRoundBtn" class="btn btn-primary">Новый раунд</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
