@@ -1,15 +1,17 @@
 const CACHE_VERSION = 'spy-pwa-v3';
+const APP_SCOPE = self.registration.scope;
+const INDEX_URL = new URL('index.html', APP_SCOPE).toString();
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/style.css?v=20260302-2',
-  '/app.js?v=20260302-2',
-  '/pwa.js?v=20260302-1',
-  '/firebase-config.js',
-  '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
-];
+  './',
+  'index.html',
+  'style.css?v=20260302-2',
+  'app.js?v=20260302-2',
+  'pwa.js?v=20260302-1',
+  'firebase-config.js',
+  'manifest.webmanifest',
+  'icons/icon-192.png',
+  'icons/icon-512.png'
+].map((path) => new URL(path, APP_SCOPE).toString());
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -40,10 +42,10 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put('/index.html', copy)).catch(() => {});
+          caches.open(CACHE_VERSION).then((cache) => cache.put(INDEX_URL, copy)).catch(() => {});
           return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(() => caches.match(INDEX_URL))
     );
     return;
   }
@@ -58,7 +60,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy)).catch(() => {});
           return response;
         })
-        .catch(() => caches.match('/index.html'));
+        .catch(() => caches.match(INDEX_URL));
     })
   );
 });

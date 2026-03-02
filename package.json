@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "spy": "node spy-game.js",
+    "hosting:preview": "firebase emulators:start --only hosting",
+    "hosting:deploy": "firebase deploy --only hosting",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

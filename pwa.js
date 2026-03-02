@@ -4,7 +4,7 @@
 
   if ('serviceWorker' in navigator && isSecure) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
     });
   }
 
