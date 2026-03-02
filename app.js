@@ -194,6 +194,8 @@ const globalStatus = document.getElementById('globalStatus');
 
 const lobbyRoomText = document.getElementById('lobbyRoomText');
 const roundText = document.getElementById('roundText');
+const lobbyTopAvatar = document.getElementById('lobbyTopAvatar');
+const lobbyTopName = document.getElementById('lobbyTopName');
 const playersList = document.getElementById('playersList');
 const lobbyStatus = document.getElementById('lobbyStatus');
 const startRoundBtn = document.getElementById('startRoundBtn');
@@ -201,6 +203,8 @@ const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 
 const gameRoomText = document.getElementById('gameRoomText');
 const gameRoundText = document.getElementById('gameRoundText');
+const gameTopAvatar = document.getElementById('gameTopAvatar');
+const gameTopName = document.getElementById('gameTopName');
 const roundAlert = document.getElementById('roundAlert');
 const roleCard = document.getElementById('roleCard');
 const roleHint = document.getElementById('roleHint');
@@ -338,6 +342,21 @@ function renderAvatarPreview(avatarUrl, name) {
     return;
   }
   avatarPreview.textContent = getInitials(name);
+}
+
+function renderTopAvatar(target, avatarUrl, name) {
+  target.innerHTML = '';
+  if (avatarUrl) {
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = name || 'avatar';
+    img.addEventListener('error', () => {
+      target.textContent = getInitials(name);
+    });
+    target.appendChild(img);
+    return;
+  }
+  target.textContent = getInitials(name);
 }
 
 async function imageFileToDataUrl(file) {
@@ -691,6 +710,13 @@ function renderRoom() {
   roundText.textContent = `Раунд #${roundNumber}`;
   gameRoomText.textContent = `Комната: ${state.roomCode}`;
   gameRoundText.textContent = `Раунд #${roundNumber}`;
+  const me = state.players.find((player) => player.id === state.myId);
+  const topName = me?.name || state.myName || 'Игрок';
+  const topAvatar = me?.avatarUrl || state.myAvatar || '';
+  lobbyTopName.textContent = topName;
+  gameTopName.textContent = topName;
+  renderTopAvatar(lobbyTopAvatar, topAvatar, topName);
+  renderTopAvatar(gameTopAvatar, topAvatar, topName);
 
   renderPlayers();
 
@@ -698,7 +724,6 @@ function renderRoom() {
     setVisible('game');
     roundAlert.className = 'round-alert hidden';
     roundAlert.textContent = '';
-    const me = state.players.find((player) => player.id === state.myId);
     const iAmEliminated = me?.eliminated === true;
     const iAmSpy = room.spyId === state.myId || room.spyUid === state.authUid;
     const revealToken = buildRoundRevealToken(room);
