@@ -175,6 +175,7 @@ const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 
 const gameRoomText = document.getElementById('gameRoomText');
 const gameRoundText = document.getElementById('gameRoundText');
+const roundAlert = document.getElementById('roundAlert');
 const roleCard = document.getElementById('roleCard');
 const roleHint = document.getElementById('roleHint');
 const votePanel = document.getElementById('votePanel');
@@ -472,6 +473,8 @@ function renderRoom() {
 
   if (room.state === 'started' || room.state === 'finished') {
     setVisible('game');
+    roundAlert.className = 'round-alert hidden';
+    roundAlert.textContent = '';
     const me = state.players.find((player) => player.id === state.myId);
     const iAmEliminated = me?.eliminated === true;
     const iAmSpy = room.spyId === state.myId || room.spyUid === state.authUid;
@@ -489,9 +492,13 @@ function renderRoom() {
     }
 
     if (room.state === 'finished' && room.lastVoteResult === 'spy_found') {
+      roundAlert.className = 'round-alert success';
+      roundAlert.textContent = `Шпион найден: ${room.eliminatedPlayerName || 'игрок'}. Раунд завершен.`;
       gameStatus.textContent = `Шпион найден (${room.eliminatedPlayerName || 'игрок'}). Раунд завершен.`;
       votePanel.classList.add('hidden');
     } else if (room.lastVoteResult === 'wrong') {
+      roundAlert.className = 'round-alert warning';
+      roundAlert.textContent = `Вы выбрали не того: ${room.eliminatedPlayerName || 'игрок'}. Игра продолжается.`;
       gameStatus.textContent = `Вы выбрали не того (${room.eliminatedPlayerName || 'игрок'}). Игра продолжается.`;
       renderVotePanel();
     } else {
@@ -500,6 +507,8 @@ function renderRoom() {
     }
   } else {
     setVisible('lobby');
+    roundAlert.className = 'round-alert hidden';
+    roundAlert.textContent = '';
     votePanel.classList.add('hidden');
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);

@@ -162,6 +162,27 @@ select:focus {
   color: var(--muted);
 }
 
+.round-alert {
+  margin: 8px 0 12px;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 800;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.round-alert.warning {
+  background: #fff1f2;
+  border-color: #fda4af;
+  color: #9f1239;
+}
+
+.round-alert.success {
+  background: #ecfdf5;
+  border-color: #86efac;
+  color: #166534;
+}
+
 .role-card {
   margin: 14px 0 10px;
   border: 1px dashed var(--line);
