@@ -333,16 +333,16 @@ function buildRoundRevealToken(roomData) {
 function showRoleReveal(roomData, iAmSpy, iAmEliminated) {
   if (iAmEliminated) {
     roleRevealTitle.className = '';
-    roleRevealTitle.textContent = 'Режим ожидания';
-    roleRevealText.textContent = 'Ты выбыл в прошлом этапе голосования и ждешь следующий раунд.';
+    roleRevealTitle.textContent = 'Карта роли';
+    roleRevealText.textContent = 'Роль: ожидание. Локация: недоступна до нового раунда.';
   } else if (iAmSpy) {
     roleRevealTitle.className = 'role-reveal-title-spy';
-    roleRevealTitle.textContent = 'Ты ШПИОН';
-    roleRevealText.textContent = 'Слушай ответы игроков и вычисли локацию, не выдав себя.';
+    roleRevealTitle.textContent = 'Карта роли';
+    roleRevealText.textContent = 'Роль: ШПИОН. Локация: скрыта. Слушай ответы и вычисли место.';
   } else {
     roleRevealTitle.className = 'role-reveal-title-safe';
-    roleRevealTitle.textContent = 'Ты НЕ шпион';
-    roleRevealText.textContent = `Локация: ${roomData.location || '-'}`;
+    roleRevealTitle.textContent = 'Карта роли';
+    roleRevealText.textContent = `Роль: НЕ шпион. Локация: ${roomData.location || '-'}`;
   }
 
   roleRevealModal.classList.remove('hidden');
