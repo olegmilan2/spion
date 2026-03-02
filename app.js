@@ -42,6 +42,7 @@ const LOCATIONS = [
 const LOCAL_MY_ID_KEY = 'spy_my_id';
 const LOCAL_NAME_KEY = 'spy_player_name';
 const LOCAL_ROOM_KEY = 'spy_room_code';
+const LOCAL_EXPECTED_KEY = 'spy_expected_players';
 
 const joinCard = document.getElementById('joinCard');
 const lobbyCard = document.getElementById('lobbyCard');
@@ -49,6 +50,7 @@ const gameCard = document.getElementById('gameCard');
 
 const nameInput = document.getElementById('nameInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
+const expectedPlayersInput = document.getElementById('expectedPlayersInput');
 const joinBtn = document.getElementById('joinBtn');
 const joinError = document.getElementById('joinError');
 const globalStatus = document.getElementById('globalStatus');
@@ -75,6 +77,7 @@ const state = {
   myId: localStorage.getItem(LOCAL_MY_ID_KEY) || crypto.randomUUID(),
   myName: localStorage.getItem(LOCAL_NAME_KEY) || '',
   roomCode: localStorage.getItem(LOCAL_ROOM_KEY) || '',
+  expectedPlayers: Number(localStorage.getItem(LOCAL_EXPECTED_KEY) || 3),
   roomData: null,
   players: [],
   roomUnsub: null,
@@ -157,7 +160,7 @@ function renderRoom() {
 
   if (room.state === 'started') {
     setVisible('game');
-    const iAmSpy = room.spyId === state.myId;
+    const iAmSpy = room.spyId === state.myId || room.spyUid === state.authUid;
     roleCard.className = `role-card ${iAmSpy ? 'spy' : 'safe'}`;
     roleCard.textContent = iAmSpy ? 'Ты ШПИОН' : `Локация: ${room.location || '-'}`;
     roleHint.textContent = iAmSpy
@@ -167,9 +170,10 @@ function renderRoom() {
   } else {
     setVisible('lobby');
     const activeCount = state.players.filter(isPlayerActive).length;
-    lobbyStatus.textContent = activeCount >= 3
-      ? 'Готово к старту. Нажми «Старт раунда».'
-      : 'Нужно минимум 3 активных игрока для старта.';
+    const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
+    lobbyStatus.textContent = activeCount === expected
+      ? `Готово к старту. Игроков: ${activeCount}/${expected}.`
+      : `Ожидаем игроков: ${activeCount}/${expected}. Старт только при точном совпадении.`;
   }
 }
 
@@ -218,9 +222,10 @@ function subscribeRoom() {
       renderPlayers();
       if (state.roomData && state.roomData.state !== 'started') {
         const activeCount = state.players.filter(isPlayerActive).length;
-        lobbyStatus.textContent = activeCount >= 3
-          ? 'Готово к старту. Нажми «Старт раунда».'
-          : 'Нужно минимум 3 активных игрока для старта.';
+        const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
+        lobbyStatus.textContent = activeCount === expected
+          ? `Готово к старту. Игроков: ${activeCount}/${expected}.`
+          : `Ожидаем игроков: ${activeCount}/${expected}. Старт только при точном совпадении.`;
       }
     },
     (error) => {
@@ -241,14 +246,25 @@ async function ensureRoomAndJoin() {
         ownerId: state.myId,
         state: 'lobby',
         roundNumber: 1,
+        expectedPlayers: state.expectedPlayers,
         createdByUid: state.authUid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
     } else {
-      tx.update(room, {
-        updatedAt: serverTimestamp()
-      });
+      const data = snap.data();
+      const currentExpected = Number(data.expectedPlayers || 3);
+
+      if (data.ownerId === state.myId && currentExpected !== state.expectedPlayers) {
+        tx.update(room, {
+          expectedPlayers: state.expectedPlayers,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        state.expectedPlayers = currentExpected;
+      }
+
+      tx.update(room, { updatedAt: serverTimestamp() });
     }
   });
 
@@ -277,6 +293,7 @@ async function ensureRoomAndJoin() {
 async function joinRoom() {
   const name = nameInput.value.trim();
   const code = normalizeRoomCode(roomCodeInput.value);
+  const expected = Number(expectedPlayersInput.value);
 
   if (!state.firebaseReady || !state.db) {
     joinError.textContent = 'Firebase еще не готов. Подожди пару секунд.';
@@ -293,11 +310,18 @@ async function joinRoom() {
     return;
   }
 
+  if (!Number.isInteger(expected) || expected < 3 || expected > 20) {
+    joinError.textContent = 'Количество игроков: от 3 до 20.';
+    return;
+  }
+
   joinError.textContent = '';
   state.myName = name;
   state.roomCode = code;
+  state.expectedPlayers = expected;
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
   localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
+  localStorage.setItem(LOCAL_EXPECTED_KEY, String(state.expectedPlayers));
 
   try {
     await ensureRoomAndJoin();
@@ -316,8 +340,9 @@ async function startRound() {
   }
 
   const eligiblePlayers = state.players.filter(isPlayerActive);
-  if (eligiblePlayers.length < 3) {
-    lobbyStatus.textContent = 'Нужно минимум 3 активных игрока в лобби.';
+  const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
+  if (eligiblePlayers.length !== expected) {
+    lobbyStatus.textContent = `Нужно ровно ${expected} активных игроков. Сейчас: ${eligiblePlayers.length}.`;
     return;
   }
 
@@ -341,6 +366,7 @@ async function startRound() {
       tx.update(room, {
         state: 'started',
         spyId: spyPlayer.id,
+        spyUid: spyPlayer.uid || '',
         location,
         startedBy: state.myId,
         startedAt: serverTimestamp(),
@@ -376,6 +402,7 @@ async function resetRound() {
         state: 'lobby',
         roundNumber: nextRound,
         spyId: deleteField(),
+        spyUid: deleteField(),
         location: deleteField(),
         startedBy: deleteField(),
         startedAt: deleteField(),
@@ -435,6 +462,7 @@ async function initFirebase() {
 function restoreInputs() {
   nameInput.value = state.myName;
   roomCodeInput.value = state.roomCode;
+  expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
 }
 
 joinBtn.addEventListener('click', joinRoom);
