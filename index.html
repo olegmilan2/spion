@@ -17,13 +17,14 @@
       <p class="eyebrow">Online Room</p>
       <h1>ШПИОН</h1>
       <p class="lead">Введи ник и код комнаты. Все в одной комнате видят общий лобби и одновременный старт.</p>
+      <div class="avatar-picker-wrap">
+        <button id="avatarPickerBtn" class="avatar-picker-btn" type="button" aria-label="Загрузить аватар">
+          <span id="avatarPreview" class="avatar-preview">?</span>
+        </button>
+      </div>
+      <input id="avatarFileInput" class="hidden-file-input" type="file" accept="image/*">
       <label for="nameInput" class="label">Твой ник</label>
       <input id="nameInput" type="text" maxlength="32" placeholder="Например: Oleg">
-      <label for="avatarFileInput" class="label">Аватар: загрузить с телефона</label>
-      <input id="avatarFileInput" type="file" accept="image/*">
-      <div class="avatar-preview-wrap">
-        <span id="avatarPreview" class="avatar-preview">?</span>
-      </div>
       <label for="roomCodeInput" class="label">Код комнаты</label>
       <input id="roomCodeInput" type="text" maxlength="20" placeholder="Например: 1234">
       <label for="expectedPlayersInput" class="label">Сколько игроков в раунде</label>

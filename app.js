@@ -182,6 +182,7 @@ const lobbyCard = document.getElementById('lobbyCard');
 const gameCard = document.getElementById('gameCard');
 
 const nameInput = document.getElementById('nameInput');
+const avatarPickerBtn = document.getElementById('avatarPickerBtn');
 const avatarFileInput = document.getElementById('avatarFileInput');
 const avatarPreview = document.getElementById('avatarPreview');
 const roomCodeInput = document.getElementById('roomCodeInput');
@@ -1242,6 +1243,9 @@ nameInput.addEventListener('input', () => {
   if (!state.myAvatar) {
     renderAvatarPreview('', nameInput.value.trim());
   }
+});
+avatarPickerBtn.addEventListener('click', () => {
+  avatarFileInput.click();
 });
 avatarFileInput.addEventListener('change', async () => {
   const file = avatarFileInput.files && avatarFileInput.files[0];

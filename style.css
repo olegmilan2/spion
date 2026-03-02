@@ -95,15 +95,28 @@ h2 {
   font-weight: 700;
 }
 
-.avatar-preview-wrap {
-  margin-top: 10px;
+.avatar-picker-wrap {
+  margin-top: 8px;
   display: flex;
   justify-content: center;
 }
 
+.avatar-picker-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.avatar-picker-btn:focus-visible {
+  outline: 2px solid #fdba74;
+  outline-offset: 3px;
+}
+
 .avatar-preview {
-  width: 56px;
-  height: 56px;
+  width: 84px;
+  height: 84px;
   border-radius: 999px;
   border: 1px solid var(--line);
   display: inline-flex;
@@ -119,6 +132,10 @@ h2 {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.hidden-file-input {
+  display: none;
 }
 
 textarea,
