@@ -294,6 +294,10 @@ select:focus {
   background: rgba(17, 24, 39, 0.6);
 }
 
+.role-reveal.hidden {
+  display: none;
+}
+
 .role-reveal-card {
   width: min(520px, 100%);
   background: #fffefb;
