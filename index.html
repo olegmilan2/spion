@@ -29,8 +29,18 @@
       <input id="roomCodeInput" type="text" maxlength="20" placeholder="Например: 1234">
       <label for="expectedPlayersInput" class="label">Сколько игроков в раунде</label>
       <input id="expectedPlayersInput" type="number" min="3" max="20" value="3">
-      <label for="spyCountInput" class="label">Сколько шпионов</label>
-      <input id="spyCountInput" type="number" min="1" max="2" value="1">
+      <label for="gameVariantInput" class="label">Вариант игры</label>
+      <div id="gameVariantGrid" class="mode-grid">
+        <button type="button" class="mode-cell active" data-variant="classic">
+          <strong>Классика</strong>
+          <span>Обычная игра без секретных действий</span>
+        </button>
+        <button type="button" class="mode-cell" data-variant="hide">
+          <strong>Прятки на виду</strong>
+          <span>Шпиону дается секретное действие</span>
+        </button>
+      </div>
+      <input id="gameVariantInput" type="hidden" value="classic">
       <label for="spyModeInput" class="label">Режим шпионов</label>
       <div id="spyModeGrid" class="mode-grid">
         <button type="button" class="mode-cell active" data-mode="blind">
@@ -43,20 +53,33 @@
         </button>
       </div>
       <input id="spyModeInput" type="hidden" value="blind">
+      <label for="spyCountInput" class="label">Сколько шпионов</label>
+      <div id="spyCountGrid" class="mode-grid spy-count-grid">
+        <button type="button" class="mode-cell spy-count-cell active" data-spy-count="1">
+          <strong>1 шпион</strong>
+          <span>Классический режим</span>
+        </button>
+        <button type="button" class="mode-cell spy-count-cell" data-spy-count="2">
+          <strong>2 шпиона</strong>
+          <span>Сложнее для мирных</span>
+        </button>
+      </div>
+      <input id="spyCountInput" type="hidden" value="1">
       <label for="categoryInput" class="label">Категория локаций</label>
-      <select id="categoryInput">
-        <option value="all">Все</option>
-        <option value="general">Общее</option>
-        <option value="cinema">Кино</option>
-        <option value="sport">Спорт</option>
-        <option value="travel">Путешествия</option>
-        <option value="work">Работа</option>
-        <option value="history">История</option>
-        <option value="tech">Технологии</option>
-        <option value="crime">Криминал</option>
-        <option value="extreme">Экстрим</option>
-        <option value="vip">VIP</option>
-      </select>
+      <div id="categoryGrid" class="mode-grid category-grid">
+        <button type="button" class="mode-cell category-cell active" data-category="all"><strong>🌍 Все</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="general"><strong>🏙️ Общее</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="cinema"><strong>🎬 Кино</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="sport"><strong>⚽ Спорт</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="travel"><strong>✈️ Путешествия</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="work"><strong>💼 Работа</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="history"><strong>🏛️ История</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="tech"><strong>🤖 Технологии</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="crime"><strong>🕵️ Криминал</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="extreme"><strong>🧗 Экстрим</strong></button>
+        <button type="button" class="mode-cell category-cell" data-category="vip"><strong>💎 VIP</strong></button>
+      </div>
+      <input id="categoryInput" type="hidden" value="all">
       <label for="difficultyInput" class="label">Сложность</label>
       <select id="difficultyInput">
         <option value="all">Любая</option>
@@ -124,17 +147,8 @@
 
     <section class="card rules-card">
       <h2>Правила игры</h2>
-      <ol class="rules-list">
-        <li>Все игроки вводят один и тот же код комнаты.</li>
-        <li>В лобби должно быть ровно столько активных игроков, сколько указано при входе.</li>
-        <li>Нажмите «Старт раунда».</li>
-        <li>Один игрок получает роль шпиона, остальные получают локацию.</li>
-        <li>Игроки задают вопросы друг другу по кругу и отвечают естественно.</li>
-        <li>Шпион пытается понять локацию и не раскрыть себя.</li>
-        <li>Через 5-10 минут все голосуют, кто шпион.</li>
-        <li>Если шпиона нашли, он может сделать финальную попытку назвать локацию.</li>
-        <li>Если шпион назвал локацию точно — побеждает шпион, иначе побеждают мирные.</li>
-      </ol>
+      <p id="rulesMeta" class="hint"></p>
+      <ol id="rulesList" class="rules-list"></ol>
     </section>
   </main>
 

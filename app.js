@@ -161,6 +161,59 @@ const EASY_GENERAL_WORDS = [
   'Зоопарк', 'Вольер', 'Ферма', 'Теплица', 'Огород', 'Пляж', 'Пирс', 'Набережная', 'Лодочная станция', 'Рыбный рынок'
 ];
 
+const SPY_SECRET_ACTIONS = [
+  'На 3 секунды высуни язык',
+  'Незаметно подмигни два раза',
+  'Коснись своего уха и продолжай говорить',
+  'Скажи фразу: "интересный вопрос"',
+  'Почеши свой затылок во время ответа',
+  'На секунду прикрой один глаз',
+  'Сложи руки в замок и отпусти',
+  'Скажи слово "логично" в ответе',
+  'Постучи своими пальцами по столу 3 раза',
+  'Сделай короткую паузу перед ответом',
+  'Поправь свой воротник или футболку',
+  'Потрогай свой нос кончиком пальца',
+  'Улыбнись и сразу стань серьезным',
+  'На секунду отвернись в сторону',
+  'Скажи: "я бы так не сказал"',
+  'Повтори последнее слово собеседника',
+  'Кивни 3 раза подряд',
+  'Скрести руки на груди на пару секунд',
+  'Проведи рукой по своим волосам',
+  'Скажи фразу: "это спорно"',
+  'Поцелуй себя в руку',
+  'Потри ладони друг о друга',
+  'Коснись своего подбородка',
+  'Поправь рукав на своей руке',
+  'Сделай глубокий вдох и медленный выдох',
+  'Проведи пальцем по своей брови',
+  'Сожми кулак и разожми',
+  'На секунду прикуси нижнюю губу',
+  'Слегка наклони голову и верни обратно',
+  'Быстро моргни 4 раза',
+  'Коснись своего лба тыльной стороной ладони',
+  'Проведи рукой по своей щеке',
+  'Сложи ладони лодочкой на секунду',
+  'Коснись ключицы кончиками пальцев',
+  'Потрогай мочку своего уха',
+  'Проведи пальцами по своим губам',
+  'Подними плечи и опусти',
+  'Сожми губы в линию на секунду',
+  'Ненадолго подними брови',
+  'Проведи ладонью по своей шее',
+  'Сделай вид, что поправляешь челку',
+  'Коснись своей переносицы',
+  'Скажи: "секунду, мысль поймал"',
+  'Поверни кисть и посмотри на свою ладонь',
+  'Сцепи пальцы и слегка потяни',
+  'Сложи губы трубочкой на секунду',
+  'Проведи пальцем по контуру своей ладони',
+  'Коснись своего виска',
+  'Ненадолго упрись локтями в стол',
+  'Скажи: "мне нужно уточнить формулировку"'
+];
+
 LOCATIONS.push(
   ...EASY_GENERAL_WORDS.map((name) => ({
     name,
@@ -176,6 +229,7 @@ const LOCAL_ROOM_KEY = 'spy_room_code';
 const LOCAL_EXPECTED_KEY = 'spy_expected_players';
 const LOCAL_SPY_COUNT_KEY = 'spy_count';
 const LOCAL_SPY_MODE_KEY = 'spy_mode';
+const LOCAL_GAME_VARIANT_KEY = 'spy_game_variant';
 const LOCAL_CATEGORY_KEY = 'spy_location_category';
 const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
 
@@ -189,9 +243,13 @@ const avatarFileInput = document.getElementById('avatarFileInput');
 const avatarPreview = document.getElementById('avatarPreview');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const expectedPlayersInput = document.getElementById('expectedPlayersInput');
+const spyCountGrid = document.getElementById('spyCountGrid');
 const spyCountInput = document.getElementById('spyCountInput');
 const spyModeGrid = document.getElementById('spyModeGrid');
 const spyModeInput = document.getElementById('spyModeInput');
+const gameVariantGrid = document.getElementById('gameVariantGrid');
+const gameVariantInput = document.getElementById('gameVariantInput');
+const categoryGrid = document.getElementById('categoryGrid');
 const categoryInput = document.getElementById('categoryInput');
 const difficultyInput = document.getElementById('difficultyInput');
 const joinBtn = document.getElementById('joinBtn');
@@ -229,6 +287,8 @@ const roleRevealModal = document.getElementById('roleRevealModal');
 const roleRevealTitle = document.getElementById('roleRevealTitle');
 const roleRevealText = document.getElementById('roleRevealText');
 const roleRevealBtn = document.getElementById('roleRevealBtn');
+const rulesMeta = document.getElementById('rulesMeta');
+const rulesList = document.getElementById('rulesList');
 
 const state = {
   firebaseReady: false,
@@ -241,6 +301,7 @@ const state = {
   expectedPlayers: Number(localStorage.getItem(LOCAL_EXPECTED_KEY) || 3),
   spyCount: Number(localStorage.getItem(LOCAL_SPY_COUNT_KEY) || 1),
   spyMode: localStorage.getItem(LOCAL_SPY_MODE_KEY) || 'blind',
+  gameVariant: localStorage.getItem(LOCAL_GAME_VARIANT_KEY) || 'classic',
   locationCategory: localStorage.getItem(LOCAL_CATEGORY_KEY) || 'all',
   locationDifficulty: localStorage.getItem(LOCAL_DIFFICULTY_KEY) || 'all',
   roomData: null,
@@ -269,9 +330,80 @@ function normalizeRoomCode(input) {
 
 function setSpyModeUI(mode) {
   spyModeInput.value = mode === 'known' ? 'known' : 'blind';
-  const cells = spyModeGrid.querySelectorAll('.mode-cell');
-  cells.forEach((cell) => {
-    cell.classList.toggle('active', cell.dataset.mode === spyModeInput.value);
+  if (spyModeGrid) {
+    const cells = spyModeGrid.querySelectorAll('.mode-cell');
+    cells.forEach((cell) => {
+      cell.classList.toggle('active', cell.dataset.mode === spyModeInput.value);
+    });
+  }
+  renderRules();
+}
+
+function setSpyCountUI(count) {
+  const safeCount = Number(count) === 2 ? '2' : '1';
+  spyCountInput.value = safeCount;
+  if (spyCountGrid) {
+    const cells = spyCountGrid.querySelectorAll('.mode-cell');
+    cells.forEach((cell) => {
+      cell.classList.toggle('active', cell.dataset.spyCount === safeCount);
+    });
+  }
+  renderRules();
+}
+
+function setGameVariantUI(variant) {
+  gameVariantInput.value = variant === 'hide' ? 'hide' : 'classic';
+  if (gameVariantGrid) {
+    const cells = gameVariantGrid.querySelectorAll('.mode-cell');
+    cells.forEach((cell) => {
+      cell.classList.toggle('active', cell.dataset.variant === gameVariantInput.value);
+    });
+  }
+  renderRules();
+}
+
+function setCategoryUI(category) {
+  const allowed = ['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip'];
+  const safeCategory = allowed.includes(category) ? category : 'all';
+  categoryInput.value = safeCategory;
+  if (categoryGrid) {
+    const cells = categoryGrid.querySelectorAll('.mode-cell');
+    cells.forEach((cell) => {
+      cell.classList.toggle('active', cell.dataset.category === safeCategory);
+    });
+  }
+}
+
+function renderRules() {
+  if (!rulesMeta || !rulesList) return;
+  const spyCount = Number(spyCountInput.value) === 2 ? 2 : 1;
+  const spyMode = spyModeInput.value === 'known' ? 'known' : 'blind';
+  const gameVariant = gameVariantInput.value === 'hide' ? 'hide' : 'classic';
+  const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
+  const gameVariantLabel = gameVariant === 'hide' ? 'прятки на виду' : 'классика';
+
+  rulesMeta.textContent = `Текущие правила: ${spyCount} шпион(а), режим ${spyModeLabel}, вариант ${gameVariantLabel}.`;
+
+  const items = [
+    'Все игроки вводят один и тот же код комнаты и ждут полный состав в лобби.',
+    `В раунде ${spyCount} шпион(а). Мирным нужно вычислить ${spyCount === 2 ? 'обоих' : 'его'} голосованием.`,
+    spyMode === 'known'
+      ? 'Режим "Сговор": шпионы знают друг друга и могут действовать вместе.'
+      : 'Режим "Вслепую": шпионы не знают, кто их напарник.',
+    gameVariant === 'hide'
+      ? 'Вариант "Прятки на виду": каждому шпиону дается секретное действие, которое нужно выполнить незаметно, без контакта с другими игроками.'
+      : 'Вариант "Классика": игра без секретных действий, только вопросы, ответы и дедукция.',
+    'После старта все получают карту роли: шпиону скрытая локация, мирным название локации.',
+    'Во время обсуждения задавайте вопросы по локации, не раскрывая ее напрямую.',
+    'В голосовании выберите подозреваемого: неверный выбор убирает игрока, а раунд продолжается.',
+    'Раунд заканчивается, когда найдены все шпионы или шпион(ы) перехитрили мирных.'
+  ];
+
+  rulesList.innerHTML = '';
+  items.forEach((text) => {
+    const li = document.createElement('li');
+    li.textContent = text;
+    rulesList.appendChild(li);
   });
 }
 
@@ -286,6 +418,10 @@ function pickDistinct(items, count) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr.slice(0, Math.max(0, Math.min(count, arr.length)));
+}
+
+function pickSecretActions(count) {
+  return pickDistinct(SPY_SECRET_ACTIONS, count);
 }
 
 function getSpyIdsFromRoom(roomData) {
@@ -436,22 +572,29 @@ function buildRoundRevealToken(roomData) {
 function showRoleReveal(roomData, iAmSpy, iAmEliminated) {
   const spyCount = Number(roomData.spyCount || getSpyIdsFromRoom(roomData).length || 1);
   const spyMode = roomData.spyMode || state.spyMode || 'blind';
+  const gameVariant = roomData.gameVariant || state.gameVariant || 'classic';
   if (iAmEliminated) {
     roleRevealTitle.className = '';
     roleRevealTitle.textContent = 'Карта роли';
     roleRevealText.textContent = 'Роль: ожидание. Локация: недоступна до нового раунда.';
   } else if (iAmSpy) {
     const spyIds = getSpyIdsFromRoom(roomData);
+    const mySecretAction = roomData.spyActions && typeof roomData.spyActions === 'object'
+      ? roomData.spyActions[state.myId]
+      : '';
     const partnerNames = state.players
       .filter((player) => spyIds.includes(player.id) && player.id !== state.myId)
       .map((player) => player.name);
     const partnerText = spyMode === 'known' && partnerNames.length > 0
       ? ` Напарники: ${partnerNames.join(', ')}.`
       : '';
+    const actionText = gameVariant === 'hide' && mySecretAction
+      ? ` Секретное действие: ${mySecretAction}. Важно: выполняй только на себе, не трогай других игроков.`
+      : '';
 
     roleRevealTitle.className = 'role-reveal-title-spy';
     roleRevealTitle.textContent = 'Карта роли';
-    roleRevealText.textContent = `Роль: ШПИОН (${spyCount} в раунде). Режим: ${spyMode === 'known' ? 'сговор' : 'вслепую'}. Локация: скрыта.${partnerText}`;
+    roleRevealText.textContent = `Роль: ШПИОН (${spyCount} в раунде). Режим: ${spyMode === 'known' ? 'сговор' : 'вслепую'}. Локация: скрыта.${partnerText}${actionText}`;
   } else {
     roleRevealTitle.className = 'role-reveal-title-safe';
     roleRevealTitle.textContent = 'Карта роли';
@@ -775,10 +918,12 @@ function renderRoom() {
   const roomDifficulty = room.locationDifficulty || state.locationDifficulty || 'all';
   const roomSpyCount = Number(room.spyCount || state.spyCount || 1);
   const roomSpyMode = room.spyMode || state.spyMode || 'blind';
-  categoryInput.value = roomCategory;
+  const roomGameVariant = room.gameVariant || state.gameVariant || 'classic';
+  setCategoryUI(roomCategory);
   difficultyInput.value = roomDifficulty;
-  spyCountInput.value = String(Math.max(1, Math.min(2, roomSpyCount)));
+  setSpyCountUI(Math.max(1, Math.min(2, roomSpyCount)));
   setSpyModeUI(roomSpyMode);
+  setGameVariantUI(roomGameVariant);
   lobbyRoomText.textContent = `Комната: ${state.roomCode}`;
   roundText.textContent = `Раунд #${roundNumber}`;
   gameRoomText.textContent = `Комната: ${state.roomCode}`;
@@ -844,9 +989,10 @@ function renderRoom() {
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
     const spyModeLabel = roomSpyMode === 'known' ? 'сговор' : 'вслепую';
+    const gameVariantLabel = roomGameVariant === 'hide' ? 'прятки на виду' : 'классика';
     lobbyStatus.textContent = activeCount === expected
-      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Фильтр: ${roomCategory}/${roomDifficulty}.`
-      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Фильтр: ${roomCategory}/${roomDifficulty}.`;
+      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
+      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
   }
 }
 
@@ -914,12 +1060,14 @@ function subscribeRoom() {
         const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
         const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
         const spyMode = state.roomData.spyMode || state.spyMode || 'blind';
+        const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
         const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
+        const gameVariantLabel = gameVariant === 'hide' ? 'прятки на виду' : 'классика';
         const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
         const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
         lobbyStatus.textContent = activeCount === expected
-          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Фильтр: ${roomCategory}/${roomDifficulty}.`
-          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Фильтр: ${roomCategory}/${roomDifficulty}.`;
+          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
+          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
       }
     },
     (error) => {
@@ -970,6 +1118,7 @@ async function ensureRoomAndJoin() {
         expectedPlayers: state.expectedPlayers,
         spyCount: state.spyCount,
         spyMode: state.spyMode,
+        gameVariant: state.gameVariant,
         locationCategory: state.locationCategory,
         locationDifficulty: state.locationDifficulty,
         locationHistory: {},
@@ -983,6 +1132,7 @@ async function ensureRoomAndJoin() {
       const currentExpected = Number(data.expectedPlayers || 3);
       const currentSpyCount = Number(data.spyCount || 1);
       const currentSpyMode = data.spyMode || 'blind';
+      const currentGameVariant = data.gameVariant || 'classic';
       const currentCategory = data.locationCategory || 'all';
       const currentDifficulty = data.locationDifficulty || 'all';
 
@@ -991,6 +1141,7 @@ async function ensureRoomAndJoin() {
         (currentExpected !== state.expectedPlayers ||
           currentSpyCount !== state.spyCount ||
           currentSpyMode !== state.spyMode ||
+          currentGameVariant !== state.gameVariant ||
           currentCategory !== state.locationCategory ||
           currentDifficulty !== state.locationDifficulty)
       ) {
@@ -998,6 +1149,7 @@ async function ensureRoomAndJoin() {
           expectedPlayers: state.expectedPlayers,
           spyCount: state.spyCount,
           spyMode: state.spyMode,
+          gameVariant: state.gameVariant,
           locationCategory: state.locationCategory,
           locationDifficulty: state.locationDifficulty,
           updatedAt: serverTimestamp()
@@ -1006,6 +1158,7 @@ async function ensureRoomAndJoin() {
         state.expectedPlayers = currentExpected;
         state.spyCount = currentSpyCount;
         state.spyMode = currentSpyMode;
+        state.gameVariant = currentGameVariant;
         state.locationCategory = currentCategory;
         state.locationDifficulty = currentDifficulty;
       }
@@ -1045,6 +1198,7 @@ async function joinRoom() {
   const expected = Number(expectedPlayersInput.value);
   const spyCount = Number(spyCountInput.value);
   const spyMode = spyModeInput.value;
+  const gameVariant = gameVariantInput.value;
   const category = categoryInput.value;
   const difficulty = difficultyInput.value;
 
@@ -1078,6 +1232,11 @@ async function joinRoom() {
     return;
   }
 
+  if (!['classic', 'hide'].includes(gameVariant)) {
+    joinError.textContent = 'Неизвестный вариант игры.';
+    return;
+  }
+
   if (!['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip'].includes(category)) {
     joinError.textContent = 'Неизвестная категория.';
     return;
@@ -1094,6 +1253,7 @@ async function joinRoom() {
   state.expectedPlayers = expected;
   state.spyCount = spyCount;
   state.spyMode = spyMode;
+  state.gameVariant = gameVariant;
   state.locationCategory = category;
   state.locationDifficulty = difficulty;
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
@@ -1102,6 +1262,7 @@ async function joinRoom() {
   localStorage.setItem(LOCAL_EXPECTED_KEY, String(state.expectedPlayers));
   localStorage.setItem(LOCAL_SPY_COUNT_KEY, String(state.spyCount));
   localStorage.setItem(LOCAL_SPY_MODE_KEY, state.spyMode);
+  localStorage.setItem(LOCAL_GAME_VARIANT_KEY, state.gameVariant);
   localStorage.setItem(LOCAL_CATEGORY_KEY, state.locationCategory);
   localStorage.setItem(LOCAL_DIFFICULTY_KEY, state.locationDifficulty);
 
@@ -1137,6 +1298,14 @@ async function startRound() {
   const spyPlayers = pickDistinct(eligiblePlayers, spyCount);
   const spyIds = spyPlayers.map((p) => p.id);
   const spyUids = spyPlayers.map((p) => p.uid || '').filter(Boolean);
+  const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
+  const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
+  const spyActions = {};
+  if (gameVariant === 'hide') {
+    spyIds.forEach((spyId, index) => {
+      spyActions[spyId] = secretActions[index] || randomItem(SPY_SECRET_ACTIONS);
+    });
+  }
 
   try {
     await runTransaction(state.db, async (tx) => {
@@ -1160,6 +1329,8 @@ async function startRound() {
         spyUids,
         spyCount,
         spyMode: data.spyMode || state.spyMode || 'blind',
+        gameVariant: data.gameVariant || state.gameVariant || 'classic',
+        spyActions: gameVariant === 'hide' ? spyActions : {},
         spyId: deleteField(),
         spyUid: deleteField(),
         location: picked.name,
@@ -1245,6 +1416,14 @@ async function resetRound() {
   const spyPlayers = pickDistinct(eligiblePlayers, spyCount);
   const spyIds = spyPlayers.map((p) => p.id);
   const spyUids = spyPlayers.map((p) => p.uid || '').filter(Boolean);
+  const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
+  const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
+  const spyActions = {};
+  if (gameVariant === 'hide') {
+    spyIds.forEach((spyId, index) => {
+      spyActions[spyId] = secretActions[index] || randomItem(SPY_SECRET_ACTIONS);
+    });
+  }
 
   try {
     await runTransaction(state.db, async (tx) => {
@@ -1266,6 +1445,8 @@ async function resetRound() {
         spyUids,
         spyCount,
         spyMode: data.spyMode || state.spyMode || 'blind',
+        gameVariant: data.gameVariant || state.gameVariant || 'classic',
+        spyActions: gameVariant === 'hide' ? spyActions : {},
         spyId: deleteField(),
         spyUid: deleteField(),
         location: picked.name,
@@ -1353,9 +1534,10 @@ function restoreInputs() {
   nameInput.value = state.myName;
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
-  spyCountInput.value = String(Math.max(1, Math.min(2, state.spyCount || 1)));
+  setSpyCountUI(Math.max(1, Math.min(2, state.spyCount || 1)));
   setSpyModeUI(state.spyMode === 'known' ? 'known' : 'blind');
-  categoryInput.value = state.locationCategory;
+  setGameVariantUI(state.gameVariant === 'hide' ? 'hide' : 'classic');
+  setCategoryUI(state.locationCategory);
   difficultyInput.value = state.locationDifficulty;
   renderAvatarPreview(state.myAvatar, state.myName);
 }
@@ -1381,11 +1563,34 @@ nameInput.addEventListener('input', () => {
     renderAvatarPreview('', nameInput.value.trim());
   }
 });
-spyModeGrid.querySelectorAll('.mode-cell').forEach((cell) => {
-  cell.addEventListener('click', () => {
-    setSpyModeUI(cell.dataset.mode || 'blind');
+if (spyCountGrid) {
+  spyCountGrid.querySelectorAll('.mode-cell').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      setSpyCountUI(cell.dataset.spyCount || '1');
+    });
   });
-});
+}
+if (spyModeGrid) {
+  spyModeGrid.querySelectorAll('.mode-cell').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      setSpyModeUI(cell.dataset.mode || 'blind');
+    });
+  });
+}
+if (gameVariantGrid) {
+  gameVariantGrid.querySelectorAll('.mode-cell').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      setGameVariantUI(cell.dataset.variant || 'classic');
+    });
+  });
+}
+if (categoryGrid) {
+  categoryGrid.querySelectorAll('.mode-cell').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      setCategoryUI(cell.dataset.category || 'all');
+    });
+  });
+}
 avatarPickerBtn.addEventListener('click', () => {
   avatarFileInput.click();
 });
