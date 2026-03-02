@@ -184,10 +184,37 @@ select:focus {
   background: #f0fdfa;
 }
 
+.role-card.wait {
+  color: #92400e;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
 .actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.vote-panel {
+  margin: 10px 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+.vote-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.vote-item .btn {
+  width: 100%;
+  text-align: left;
 }
 
 .players-list {

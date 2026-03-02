@@ -125,6 +125,9 @@ const gameRoomText = document.getElementById('gameRoomText');
 const gameRoundText = document.getElementById('gameRoundText');
 const roleCard = document.getElementById('roleCard');
 const roleHint = document.getElementById('roleHint');
+const votePanel = document.getElementById('votePanel');
+const voteCandidates = document.getElementById('voteCandidates');
+const voteStatus = document.getElementById('voteStatus');
 const gameStatus = document.getElementById('gameStatus');
 const newRoundBtn = document.getElementById('newRoundBtn');
 const leaveFromGameBtn = document.getElementById('leaveFromGameBtn');
@@ -141,8 +144,10 @@ const state = {
   locationDifficulty: localStorage.getItem(LOCAL_DIFFICULTY_KEY) || 'all',
   roomData: null,
   players: [],
+  votes: [],
   roomUnsub: null,
   playersUnsub: null,
+  votesUnsub: null,
   presenceTimerId: null
 };
 
@@ -222,6 +227,126 @@ function renderPlayers() {
   });
 }
 
+function activeAlivePlayers() {
+  return state.players.filter((player) => isPlayerActive(player) && player.eliminated !== true);
+}
+
+function currentRoundVotes() {
+  const roundNumber = Number(state.roomData?.roundNumber || 1);
+  return state.votes.filter((vote) => Number(vote.roundNumber || 0) === roundNumber);
+}
+
+function voteByMe() {
+  return currentRoundVotes().find((vote) => vote.id === state.myId) || null;
+}
+
+async function tryResolveVotes() {
+  if (!state.roomData || state.roomData.state !== 'started') return;
+  if (state.roomData.eliminatedRound === state.roomData.roundNumber) return;
+
+  const alivePlayers = activeAlivePlayers();
+  const votes = currentRoundVotes();
+  if (alivePlayers.length < 2) return;
+  if (votes.length < alivePlayers.length) return;
+
+  const counters = new Map();
+  votes.forEach((vote) => {
+    if (!vote.targetPlayerId) return;
+    counters.set(vote.targetPlayerId, (counters.get(vote.targetPlayerId) || 0) + 1);
+  });
+
+  if (counters.size === 0) return;
+
+  const sorted = Array.from(counters.entries()).sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return String(a[0]).localeCompare(String(b[0]));
+  });
+
+  const eliminatedPlayerId = sorted[0][0];
+  const eliminatedPlayer = state.players.find((player) => player.id === eliminatedPlayerId);
+  const eliminatedPlayerName = eliminatedPlayer ? eliminatedPlayer.name : 'Игрок';
+
+  try {
+    await runTransaction(state.db, async (tx) => {
+      const room = roomRef();
+      const roomSnap = await tx.get(room);
+      if (!roomSnap.exists()) throw new Error('Комната не найдена');
+      const roomData = roomSnap.data();
+
+      if (roomData.state !== 'started') return;
+      if (roomData.eliminatedRound === roomData.roundNumber) return;
+      if (roomData.roundNumber !== state.roomData.roundNumber) return;
+
+      tx.update(playerRef(eliminatedPlayerId), {
+        eliminated: true,
+        waiting: true,
+        lastSeenAt: serverTimestamp()
+      });
+
+      tx.update(room, {
+        eliminatedPlayerId,
+        eliminatedPlayerName,
+        eliminatedRound: roomData.roundNumber,
+        updatedAt: serverTimestamp()
+      });
+    });
+  } catch (error) {
+    // another client can resolve first; safe to ignore race
+  }
+}
+
+function renderVotePanel() {
+  if (!state.roomData || state.roomData.state !== 'started') {
+    votePanel.classList.add('hidden');
+    return;
+  }
+
+  const me = state.players.find((player) => player.id === state.myId);
+  if (!me || me.eliminated === true) {
+    votePanel.classList.add('hidden');
+    return;
+  }
+
+  votePanel.classList.remove('hidden');
+  voteCandidates.innerHTML = '';
+
+  const playersForVote = activeAlivePlayers().filter((player) => player.id !== state.myId);
+  const myVote = voteByMe();
+  const votes = currentRoundVotes();
+
+  if (state.roomData.eliminatedRound === state.roomData.roundNumber) {
+    voteStatus.textContent = `Голосование завершено. Выбыл: ${state.roomData.eliminatedPlayerName || 'игрок'}.`;
+  } else {
+    voteStatus.textContent = myVote
+      ? `Твой голос принят. Проголосовало ${votes.length}/${activeAlivePlayers().length}.`
+      : `Проголосовало ${votes.length}/${activeAlivePlayers().length}.`;
+  }
+
+  if (playersForVote.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'vote-item';
+    li.textContent = 'Нет доступных кандидатов для голосования.';
+    voteCandidates.appendChild(li);
+    return;
+  }
+
+  playersForVote.forEach((player) => {
+    const li = document.createElement('li');
+    li.className = 'vote-item';
+
+    const button = document.createElement('button');
+    button.className = 'btn';
+    button.textContent = myVote?.targetPlayerId === player.id ? `✓ ${player.name}` : player.name;
+    button.disabled = Boolean(myVote) || state.roomData.eliminatedRound === state.roomData.roundNumber;
+    button.addEventListener('click', () => {
+      castVote(player.id);
+    });
+
+    li.appendChild(button);
+    voteCandidates.appendChild(li);
+  });
+}
+
 function renderRoom() {
   const room = state.roomData;
   if (!room) return;
@@ -240,15 +365,32 @@ function renderRoom() {
 
   if (room.state === 'started') {
     setVisible('game');
+    const me = state.players.find((player) => player.id === state.myId);
+    const iAmEliminated = me?.eliminated === true;
     const iAmSpy = room.spyId === state.myId || room.spyUid === state.authUid;
-    roleCard.className = `role-card ${iAmSpy ? 'spy' : 'safe'}`;
-    roleCard.textContent = iAmSpy ? 'Ты ШПИОН' : `Локация: ${room.location || '-'}`;
-    roleHint.textContent = iAmSpy
-      ? 'Задача: вычислить локацию и не выдать себя.'
-      : 'Задача: задавать вопросы и найти шпиона.';
-    gameStatus.textContent = 'Раунд синхронизирован. Все игроки получили роли.';
+
+    if (iAmEliminated) {
+      roleCard.className = 'role-card wait';
+      roleCard.textContent = 'Режим ожидания';
+      roleHint.textContent = 'Ты выбыл из голосования. Дождись нового раунда.';
+    } else {
+      roleCard.className = `role-card ${iAmSpy ? 'spy' : 'safe'}`;
+      roleCard.textContent = iAmSpy ? 'Ты ШПИОН' : `Локация: ${room.location || '-'}`;
+      roleHint.textContent = iAmSpy
+        ? 'Задача: вычислить локацию и не выдать себя.'
+        : 'Задача: задавать вопросы и найти шпиона.';
+    }
+
+    if (room.eliminatedRound === room.roundNumber) {
+      gameStatus.textContent = `Голосование завершено. Выбыл: ${room.eliminatedPlayerName || 'игрок'}.`;
+    } else {
+      gameStatus.textContent = 'Раунд синхронизирован. Все игроки получили роли.';
+    }
+
+    renderVotePanel();
   } else {
     setVisible('lobby');
+    votePanel.classList.add('hidden');
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
     lobbyStatus.textContent = activeCount === expected
@@ -266,6 +408,10 @@ function clearSubscriptions() {
     state.playersUnsub();
     state.playersUnsub = null;
   }
+  if (state.votesUnsub) {
+    state.votesUnsub();
+    state.votesUnsub = null;
+  }
 }
 
 function roomRef() {
@@ -274,6 +420,10 @@ function roomRef() {
 
 function playerRef(playerId) {
   return doc(state.db, 'rooms', state.roomCode, 'players', playerId);
+}
+
+function voteRef(voterId) {
+  return doc(state.db, 'rooms', state.roomCode, 'votes', voterId);
 }
 
 function subscribeRoom() {
@@ -312,6 +462,21 @@ function subscribeRoom() {
     },
     (error) => {
       showGlobalStatus(`Ошибка players snapshot: ${error.message}`, 'error');
+    }
+  );
+
+  const votesQuery = query(collection(state.db, 'rooms', state.roomCode, 'votes'));
+  state.votesUnsub = onSnapshot(
+    votesQuery,
+    (snapshot) => {
+      state.votes = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+      if (state.roomData?.state === 'started') {
+        renderVotePanel();
+        tryResolveVotes();
+      }
+    },
+    (error) => {
+      showGlobalStatus(`Ошибка votes snapshot: ${error.message}`, 'error');
     }
   );
 }
@@ -369,6 +534,8 @@ async function ensureRoomAndJoin() {
       id: state.myId,
       name: state.myName,
       connected: true,
+      eliminated: false,
+      waiting: false,
       joinedAt: serverTimestamp(),
       lastSeenAt: serverTimestamp(),
       uid: state.authUid
@@ -485,15 +652,55 @@ async function startRound() {
         location,
         locationCategory: roomCategory,
         locationDifficulty: roomDifficulty,
+        eliminatedPlayerId: deleteField(),
+        eliminatedPlayerName: deleteField(),
+        eliminatedRound: deleteField(),
         startedBy: state.myId,
         startedAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
     });
 
+    await Promise.all(
+      state.players.map((player) =>
+        updateDoc(playerRef(player.id), {
+          eliminated: false,
+          waiting: false,
+          lastSeenAt: serverTimestamp()
+        }).catch(() => {})
+      )
+    );
+
     lobbyStatus.textContent = 'Раунд запущен. Раздаем роли...';
   } catch (error) {
     lobbyStatus.textContent = `Старт отклонен: ${error.message}`;
+  }
+}
+
+async function castVote(targetPlayerId) {
+  if (!state.roomData || state.roomData.state !== 'started') return;
+  if (state.roomData.eliminatedRound === state.roomData.roundNumber) return;
+  if (voteByMe()) return;
+
+  const me = state.players.find((player) => player.id === state.myId);
+  if (!me || me.eliminated === true) return;
+
+  try {
+    await setDoc(
+      voteRef(state.myId),
+      {
+        voterId: state.myId,
+        voterName: state.myName,
+        targetPlayerId,
+        roundNumber: state.roomData.roundNumber,
+        createdAt: serverTimestamp()
+      },
+      { merge: true }
+    );
+    renderVotePanel();
+    await tryResolveVotes();
+  } catch (error) {
+    voteStatus.textContent = `Ошибка голосования: ${error.message}`;
   }
 }
 
@@ -520,12 +727,25 @@ async function resetRound() {
         roundNumber: nextRound,
         spyId: deleteField(),
         spyUid: deleteField(),
+        eliminatedPlayerId: deleteField(),
+        eliminatedPlayerName: deleteField(),
+        eliminatedRound: deleteField(),
         location: deleteField(),
         startedBy: deleteField(),
         startedAt: deleteField(),
         updatedAt: serverTimestamp()
       });
     });
+
+    await Promise.all(
+      state.players.map((player) =>
+        updateDoc(playerRef(player.id), {
+          eliminated: false,
+          waiting: false,
+          lastSeenAt: serverTimestamp()
+        }).catch(() => {})
+      )
+    );
 
     gameStatus.textContent = 'Переключено в лобби. Можно запускать новый раунд.';
   } catch (error) {
@@ -553,6 +773,7 @@ async function leaveRoom() {
   clearSubscriptions();
   state.roomData = null;
   state.players = [];
+  state.votes = [];
   setVisible('join');
 }
 
