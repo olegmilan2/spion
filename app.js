@@ -2,7 +2,6 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/fireba
 import {
   collection,
   doc,
-  getDoc,
   getFirestore,
   onSnapshot,
   orderBy,
@@ -16,33 +15,61 @@ import {
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
 
 const LOCATIONS = [
-  'Аэропорт',
-  'Банк',
-  'Больница',
-  'Военная база',
-  'Казино',
-  'Кинотеатр',
-  'Космическая станция',
-  'Круизный лайнер',
-  'Музей',
-  'Отель',
-  'Пиратский корабль',
-  'Подводная лодка',
-  'Полицейский участок',
-  'Пляж',
-  'Ресторан',
-  'Самолет',
-  'Стадион',
-  'Супермаркет',
-  'Театр',
-  'Университет',
-  'Цирк'
+  { name: 'Кинотеатр', category: 'cinema', difficulty: 'easy' },
+  { name: 'Съемочная площадка', category: 'cinema', difficulty: 'medium' },
+  { name: 'Кинопавильон', category: 'cinema', difficulty: 'medium' },
+  { name: 'Постпродакшн студия', category: 'cinema', difficulty: 'hard' },
+  { name: 'Кастинг-агентство', category: 'cinema', difficulty: 'hard' },
+  { name: 'Фестиваль короткометражек', category: 'cinema', difficulty: 'hard' },
+  { name: 'Стадион', category: 'sport', difficulty: 'easy' },
+  { name: 'Фитнес-клуб', category: 'sport', difficulty: 'easy' },
+  { name: 'Бассейн', category: 'sport', difficulty: 'easy' },
+  { name: 'Ледовая арена', category: 'sport', difficulty: 'medium' },
+  { name: 'Скалодром', category: 'sport', difficulty: 'medium' },
+  { name: 'Велотрек', category: 'sport', difficulty: 'medium' },
+  { name: 'Центр подготовки олимпийцев', category: 'sport', difficulty: 'hard' },
+  { name: 'Комментаторская кабина', category: 'sport', difficulty: 'hard' },
+  { name: 'Спортивный допинг-контроль', category: 'sport', difficulty: 'hard' },
+  { name: 'Ресторан', category: 'general', difficulty: 'easy' },
+  { name: 'Супермаркет', category: 'general', difficulty: 'easy' },
+  { name: 'Банк', category: 'general', difficulty: 'easy' },
+  { name: 'Больница', category: 'general', difficulty: 'easy' },
+  { name: 'Школа', category: 'general', difficulty: 'easy' },
+  { name: 'Университет', category: 'general', difficulty: 'medium' },
+  { name: 'Музей', category: 'general', difficulty: 'medium' },
+  { name: 'Театр', category: 'general', difficulty: 'medium' },
+  { name: 'Суд', category: 'general', difficulty: 'medium' },
+  { name: 'Полицейский участок', category: 'general', difficulty: 'medium' },
+  { name: 'Похоронное бюро', category: 'general', difficulty: 'hard' },
+  { name: 'Реставрационная мастерская музея', category: 'general', difficulty: 'hard' },
+  { name: 'Хранилище архива', category: 'general', difficulty: 'hard' },
+  { name: 'Аэропорт', category: 'travel', difficulty: 'easy' },
+  { name: 'Вокзал', category: 'travel', difficulty: 'easy' },
+  { name: 'Отель', category: 'travel', difficulty: 'easy' },
+  { name: 'Пляж', category: 'travel', difficulty: 'easy' },
+  { name: 'Круизный лайнер', category: 'travel', difficulty: 'medium' },
+  { name: 'Подводная лодка', category: 'travel', difficulty: 'hard' },
+  { name: 'Космическая станция', category: 'travel', difficulty: 'hard' },
+  { name: 'Пограничный пункт', category: 'travel', difficulty: 'hard' },
+  { name: 'Транзитная зона аэропорта', category: 'travel', difficulty: 'hard' },
+  { name: 'Офис', category: 'work', difficulty: 'easy' },
+  { name: 'Колл-центр', category: 'work', difficulty: 'easy' },
+  { name: 'Коворкинг', category: 'work', difficulty: 'easy' },
+  { name: 'Склад', category: 'work', difficulty: 'medium' },
+  { name: 'Заводской цех', category: 'work', difficulty: 'medium' },
+  { name: 'Лаборатория', category: 'work', difficulty: 'medium' },
+  { name: 'Аудиторская проверка', category: 'work', difficulty: 'hard' },
+  { name: 'Дата-центр', category: 'work', difficulty: 'hard' },
+  { name: 'Центр управления полетами', category: 'work', difficulty: 'hard' },
+  { name: 'Военная база', category: 'work', difficulty: 'hard' }
 ];
 
 const LOCAL_MY_ID_KEY = 'spy_my_id';
 const LOCAL_NAME_KEY = 'spy_player_name';
 const LOCAL_ROOM_KEY = 'spy_room_code';
 const LOCAL_EXPECTED_KEY = 'spy_expected_players';
+const LOCAL_CATEGORY_KEY = 'spy_location_category';
+const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
 
 const joinCard = document.getElementById('joinCard');
 const lobbyCard = document.getElementById('lobbyCard');
@@ -51,6 +78,8 @@ const gameCard = document.getElementById('gameCard');
 const nameInput = document.getElementById('nameInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const expectedPlayersInput = document.getElementById('expectedPlayersInput');
+const categoryInput = document.getElementById('categoryInput');
+const difficultyInput = document.getElementById('difficultyInput');
 const joinBtn = document.getElementById('joinBtn');
 const joinError = document.getElementById('joinError');
 const globalStatus = document.getElementById('globalStatus');
@@ -78,6 +107,8 @@ const state = {
   myName: localStorage.getItem(LOCAL_NAME_KEY) || '',
   roomCode: localStorage.getItem(LOCAL_ROOM_KEY) || '',
   expectedPlayers: Number(localStorage.getItem(LOCAL_EXPECTED_KEY) || 3),
+  locationCategory: localStorage.getItem(LOCAL_CATEGORY_KEY) || 'all',
+  locationDifficulty: localStorage.getItem(LOCAL_DIFFICULTY_KEY) || 'all',
   roomData: null,
   players: [],
   roomUnsub: null,
@@ -99,6 +130,17 @@ function normalizeRoomCode(input) {
 
 function randomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function pickLocation(category, difficulty) {
+  const filtered = LOCATIONS.filter((item) => {
+    const categoryOk = category === 'all' || item.category === category;
+    const difficultyOk = difficulty === 'all' || item.difficulty === difficulty;
+    return categoryOk && difficultyOk;
+  });
+
+  const pool = filtered.length > 0 ? filtered : LOCATIONS;
+  return randomItem(pool);
 }
 
 function toMillis(value) {
@@ -151,6 +193,10 @@ function renderRoom() {
   if (!room) return;
 
   const roundNumber = room.roundNumber || 1;
+  const roomCategory = room.locationCategory || state.locationCategory || 'all';
+  const roomDifficulty = room.locationDifficulty || state.locationDifficulty || 'all';
+  categoryInput.value = roomCategory;
+  difficultyInput.value = roomDifficulty;
   lobbyRoomText.textContent = `Комната: ${state.roomCode}`;
   roundText.textContent = `Раунд #${roundNumber}`;
   gameRoomText.textContent = `Комната: ${state.roomCode}`;
@@ -172,8 +218,8 @@ function renderRoom() {
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
     lobbyStatus.textContent = activeCount === expected
-      ? `Готово к старту. Игроков: ${activeCount}/${expected}.`
-      : `Ожидаем игроков: ${activeCount}/${expected}. Старт только при точном совпадении.`;
+      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Фильтр: ${roomCategory}/${roomDifficulty}.`
+      : `Ожидаем игроков: ${activeCount}/${expected}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
   }
 }
 
@@ -223,9 +269,11 @@ function subscribeRoom() {
       if (state.roomData && state.roomData.state !== 'started') {
         const activeCount = state.players.filter(isPlayerActive).length;
         const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
+        const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
+        const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
         lobbyStatus.textContent = activeCount === expected
-          ? `Готово к старту. Игроков: ${activeCount}/${expected}.`
-          : `Ожидаем игроков: ${activeCount}/${expected}. Старт только при точном совпадении.`;
+          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Фильтр: ${roomCategory}/${roomDifficulty}.`
+          : `Ожидаем игроков: ${activeCount}/${expected}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
       }
     },
     (error) => {
@@ -247,6 +295,8 @@ async function ensureRoomAndJoin() {
         state: 'lobby',
         roundNumber: 1,
         expectedPlayers: state.expectedPlayers,
+        locationCategory: state.locationCategory,
+        locationDifficulty: state.locationDifficulty,
         createdByUid: state.authUid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -254,14 +304,25 @@ async function ensureRoomAndJoin() {
     } else {
       const data = snap.data();
       const currentExpected = Number(data.expectedPlayers || 3);
+      const currentCategory = data.locationCategory || 'all';
+      const currentDifficulty = data.locationDifficulty || 'all';
 
-      if (data.ownerId === state.myId && currentExpected !== state.expectedPlayers) {
+      if (
+        data.ownerId === state.myId &&
+        (currentExpected !== state.expectedPlayers ||
+          currentCategory !== state.locationCategory ||
+          currentDifficulty !== state.locationDifficulty)
+      ) {
         tx.update(room, {
           expectedPlayers: state.expectedPlayers,
+          locationCategory: state.locationCategory,
+          locationDifficulty: state.locationDifficulty,
           updatedAt: serverTimestamp()
         });
       } else {
         state.expectedPlayers = currentExpected;
+        state.locationCategory = currentCategory;
+        state.locationDifficulty = currentDifficulty;
       }
 
       tx.update(room, { updatedAt: serverTimestamp() });
@@ -294,6 +355,8 @@ async function joinRoom() {
   const name = nameInput.value.trim();
   const code = normalizeRoomCode(roomCodeInput.value);
   const expected = Number(expectedPlayersInput.value);
+  const category = categoryInput.value;
+  const difficulty = difficultyInput.value;
 
   if (!state.firebaseReady || !state.db) {
     joinError.textContent = 'Firebase еще не готов. Подожди пару секунд.';
@@ -315,13 +378,27 @@ async function joinRoom() {
     return;
   }
 
+  if (!['all', 'general', 'cinema', 'sport', 'travel', 'work'].includes(category)) {
+    joinError.textContent = 'Неизвестная категория.';
+    return;
+  }
+
+  if (!['all', 'easy', 'medium', 'hard'].includes(difficulty)) {
+    joinError.textContent = 'Неизвестная сложность.';
+    return;
+  }
+
   joinError.textContent = '';
   state.myName = name;
   state.roomCode = code;
   state.expectedPlayers = expected;
+  state.locationCategory = category;
+  state.locationDifficulty = difficulty;
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
   localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
   localStorage.setItem(LOCAL_EXPECTED_KEY, String(state.expectedPlayers));
+  localStorage.setItem(LOCAL_CATEGORY_KEY, state.locationCategory);
+  localStorage.setItem(LOCAL_DIFFICULTY_KEY, state.locationDifficulty);
 
   try {
     await ensureRoomAndJoin();
@@ -347,7 +424,10 @@ async function startRound() {
   }
 
   const spyPlayer = randomItem(eligiblePlayers);
-  const location = randomItem(LOCATIONS);
+  const roomCategory = state.roomData.locationCategory || 'all';
+  const roomDifficulty = state.roomData.locationDifficulty || 'all';
+  const locationItem = pickLocation(roomCategory, roomDifficulty);
+  const location = locationItem.name;
 
   try {
     await runTransaction(state.db, async (tx) => {
@@ -368,6 +448,8 @@ async function startRound() {
         spyId: spyPlayer.id,
         spyUid: spyPlayer.uid || '',
         location,
+        locationCategory: roomCategory,
+        locationDifficulty: roomDifficulty,
         startedBy: state.myId,
         startedAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -463,6 +545,8 @@ function restoreInputs() {
   nameInput.value = state.myName;
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
+  categoryInput.value = state.locationCategory;
+  difficultyInput.value = state.locationDifficulty;
 }
 
 joinBtn.addEventListener('click', joinRoom);

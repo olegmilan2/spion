@@ -23,6 +23,22 @@
       <input id="roomCodeInput" type="text" maxlength="20" placeholder="Например: 1234">
       <label for="expectedPlayersInput" class="label">Сколько игроков в раунде</label>
       <input id="expectedPlayersInput" type="number" min="3" max="20" value="3">
+      <label for="categoryInput" class="label">Категория локаций</label>
+      <select id="categoryInput">
+        <option value="all">Все</option>
+        <option value="general">Общее</option>
+        <option value="cinema">Кино</option>
+        <option value="sport">Спорт</option>
+        <option value="travel">Путешествия</option>
+        <option value="work">Работа</option>
+      </select>
+      <label for="difficultyInput" class="label">Сложность</label>
+      <select id="difficultyInput">
+        <option value="all">Любая</option>
+        <option value="easy">Легкая</option>
+        <option value="medium">Средняя</option>
+        <option value="hard">Сложная</option>
+      </select>
       <button id="joinBtn" class="btn btn-primary">Войти в комнату</button>
       <p id="joinError" class="error"></p>
       <p id="globalStatus" class="hint"></p>
