@@ -421,6 +421,7 @@ const LOCAL_SPY_MODE_KEY = 'spy_mode';
 const LOCAL_GAME_VARIANT_KEY = 'spy_game_variant';
 const LOCAL_CATEGORY_KEY = 'spy_location_category';
 const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
+const LOCAL_AI_ENABLED_KEY = 'spy_ai_enabled';
 
 const joinCard = document.getElementById('joinCard');
 const lobbyCard = document.getElementById('lobbyCard');
@@ -441,6 +442,7 @@ const gameVariantInput = document.getElementById('gameVariantInput');
 const categoryGrid = document.getElementById('categoryGrid');
 const categoryInput = document.getElementById('categoryInput');
 const difficultyInput = document.getElementById('difficultyInput');
+const aiEnabledInput = document.getElementById('aiEnabledInput');
 const joinBtn = document.getElementById('joinBtn');
 const joinError = document.getElementById('joinError');
 const globalStatus = document.getElementById('globalStatus');
@@ -496,6 +498,7 @@ const state = {
   gameVariant: localStorage.getItem(LOCAL_GAME_VARIANT_KEY) || 'classic',
   locationCategory: localStorage.getItem(LOCAL_CATEGORY_KEY) || 'all',
   locationDifficulty: localStorage.getItem(LOCAL_DIFFICULTY_KEY) || 'all',
+  aiEnabled: localStorage.getItem(LOCAL_AI_ENABLED_KEY) === '1',
   roomData: null,
   players: [],
   votes: [],
@@ -545,7 +548,8 @@ function normalizeAiArray(value, limit) {
     .slice(0, limit);
 }
 
-async function requestAiRoundPack(category, difficulty, civiliansCount) {
+async function requestAiRoundPack(enabled, category, difficulty, civiliansCount) {
+  if (!enabled) return null;
   if (window.location.protocol === 'file:') return null;
   try {
     const response = await fetch('/api/generate-round', {
@@ -1385,12 +1389,15 @@ function renderRoom() {
   const roomSpyCount = Number(room.spyCount || state.spyCount || 1);
   const roomSpyMode = room.spyMode || state.spyMode || 'blind';
   const roomGameVariant = room.gameVariant || state.gameVariant || 'classic';
+  const roomAiEnabled = room.aiEnabled === true;
   const roomQuickQuestions = Array.isArray(room.quickQuestions) && room.quickQuestions.length > 0
     ? room.quickQuestions
     : QUICK_QUESTIONS;
+  state.aiEnabled = roomAiEnabled;
   state.quickQuestions = roomQuickQuestions;
   setCategoryUI(roomCategory);
   difficultyInput.value = roomDifficulty;
+  aiEnabledInput.value = roomAiEnabled ? 'on' : 'off';
   setSpyCountUI(Math.max(1, Math.min(2, roomSpyCount)));
   setSpyModeUI(roomSpyMode);
   setGameVariantUI(roomGameVariant);
@@ -1470,9 +1477,10 @@ function renderRoom() {
       : roomGameVariant === 'classic_roles'
         ? 'классика с ролью'
         : 'классика';
+    const aiLabel = roomAiEnabled ? 'вкл' : 'выкл';
     lobbyStatus.textContent = activeCount === expected
-      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
-      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
+      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. ИИ: ${aiLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
+      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. ИИ: ${aiLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
   }
 }
 
@@ -1585,17 +1593,19 @@ function subscribeRoom() {
         const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
         const spyMode = state.roomData.spyMode || state.spyMode || 'blind';
         const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
+        const aiEnabled = state.roomData.aiEnabled === true;
         const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
         const gameVariantLabel = gameVariant === 'hide'
           ? 'прятки на виду'
           : gameVariant === 'classic_roles'
             ? 'классика с ролью'
             : 'классика';
+        const aiLabel = aiEnabled ? 'вкл' : 'выкл';
         const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
         const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
         lobbyStatus.textContent = activeCount === expected
-          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
-          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
+          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. ИИ: ${aiLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`
+          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. ИИ: ${aiLabel}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
       }
     },
     (error) => {
@@ -1649,6 +1659,7 @@ async function ensureRoomAndJoin() {
         gameVariant: state.gameVariant,
         locationCategory: state.locationCategory,
         locationDifficulty: state.locationDifficulty,
+        aiEnabled: state.aiEnabled,
         locationHistory: {},
         quickQuestions: QUICK_QUESTIONS,
         lastLocation: '',
@@ -1664,6 +1675,7 @@ async function ensureRoomAndJoin() {
       const currentGameVariant = data.gameVariant || 'classic';
       const currentCategory = data.locationCategory || 'all';
       const currentDifficulty = data.locationDifficulty || 'all';
+      const currentAiEnabled = data.aiEnabled === true;
 
       if (
         data.ownerId === state.myId &&
@@ -1672,7 +1684,8 @@ async function ensureRoomAndJoin() {
           currentSpyMode !== state.spyMode ||
           currentGameVariant !== state.gameVariant ||
           currentCategory !== state.locationCategory ||
-          currentDifficulty !== state.locationDifficulty)
+          currentDifficulty !== state.locationDifficulty ||
+          currentAiEnabled !== state.aiEnabled)
       ) {
         tx.update(room, {
           expectedPlayers: state.expectedPlayers,
@@ -1681,6 +1694,7 @@ async function ensureRoomAndJoin() {
           gameVariant: state.gameVariant,
           locationCategory: state.locationCategory,
           locationDifficulty: state.locationDifficulty,
+          aiEnabled: state.aiEnabled,
           updatedAt: serverTimestamp()
         });
       } else {
@@ -1690,6 +1704,7 @@ async function ensureRoomAndJoin() {
         state.gameVariant = currentGameVariant;
         state.locationCategory = currentCategory;
         state.locationDifficulty = currentDifficulty;
+        state.aiEnabled = currentAiEnabled;
       }
 
       tx.update(room, { updatedAt: serverTimestamp() });
@@ -1730,6 +1745,7 @@ async function joinRoom() {
   const gameVariant = gameVariantInput.value;
   const category = categoryInput.value;
   const difficulty = difficultyInput.value;
+  const aiEnabled = aiEnabledInput.value === 'on';
 
   if (!state.firebaseReady || !state.db) {
     joinError.textContent = 'Firebase еще не готов. Подожди пару секунд.';
@@ -1785,6 +1801,7 @@ async function joinRoom() {
   state.gameVariant = gameVariant;
   state.locationCategory = category;
   state.locationDifficulty = difficulty;
+  state.aiEnabled = aiEnabled;
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
   localStorage.setItem(LOCAL_AVATAR_KEY, state.myAvatar);
   localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
@@ -1794,6 +1811,7 @@ async function joinRoom() {
   localStorage.setItem(LOCAL_GAME_VARIANT_KEY, state.gameVariant);
   localStorage.setItem(LOCAL_CATEGORY_KEY, state.locationCategory);
   localStorage.setItem(LOCAL_DIFFICULTY_KEY, state.locationDifficulty);
+  localStorage.setItem(LOCAL_AI_ENABLED_KEY, state.aiEnabled ? '1' : '0');
 
   try {
     await ensureRoomAndJoin();
@@ -1828,11 +1846,12 @@ async function startRound() {
   const spyIds = spyPlayers.map((p) => p.id);
   const spyUids = spyPlayers.map((p) => p.uid || '').filter(Boolean);
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
+  const aiEnabled = state.roomData.aiEnabled === true;
   const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
   const civilianPlayers = eligiblePlayers.filter((player) => !spyIds.includes(player.id));
   const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
   const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
-  const aiPack = await requestAiRoundPack(roomCategory, roomDifficulty, civilianPlayers.length);
+  const aiPack = await requestAiRoundPack(aiEnabled, roomCategory, roomDifficulty, civilianPlayers.length);
   const spyActions = {};
   if (gameVariant === 'hide') {
     spyIds.forEach((spyId, index) => {
@@ -1970,11 +1989,12 @@ async function resetRound() {
   const spyIds = spyPlayers.map((p) => p.id);
   const spyUids = spyPlayers.map((p) => p.uid || '').filter(Boolean);
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
+  const aiEnabled = state.roomData.aiEnabled === true;
   const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
   const civilianPlayers = eligiblePlayers.filter((player) => !spyIds.includes(player.id));
   const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
   const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
-  const aiPack = await requestAiRoundPack(roomCategory, roomDifficulty, civilianPlayers.length);
+  const aiPack = await requestAiRoundPack(aiEnabled, roomCategory, roomDifficulty, civilianPlayers.length);
   const spyActions = {};
   if (gameVariant === 'hide') {
     spyIds.forEach((spyId, index) => {
@@ -2113,6 +2133,7 @@ function restoreInputs() {
   setGameVariantUI(state.gameVariant);
   setCategoryUI(state.locationCategory);
   difficultyInput.value = state.locationDifficulty;
+  aiEnabledInput.value = state.aiEnabled ? 'on' : 'off';
   renderAvatarPreview(state.myAvatar, state.myName);
 }
 
