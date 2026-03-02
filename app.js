@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-import { addDoc, collection, getFirestore, limit, onSnapshot, orderBy, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+import { addDoc, collection, getFirestore, limit, onSnapshot, orderBy, query, serverTimestamp, where } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
 
 const LOCATIONS = [
@@ -40,7 +40,6 @@ const state = {
   hostName: '',
   roomId: '',
   roomLabel: '',
-  feedScope: 'room',
   cachedRounds: [],
   authUid: ''
 };
@@ -67,7 +66,7 @@ const firebaseStatus = document.getElementById('firebaseStatus');
 const newRoundBtn = document.getElementById('newRoundBtn');
 const liveRoundsStatus = document.getElementById('liveRoundsStatus');
 const liveRoundsList = document.getElementById('liveRoundsList');
-const feedScopeSelect = document.getElementById('feedScopeSelect');
+const feedRoomCaption = document.getElementById('feedRoomCaption');
 const statsStatus = document.getElementById('statsStatus');
 const statRounds = document.getElementById('statRounds');
 const statAvgMinutes = document.getElementById('statAvgMinutes');
@@ -187,14 +186,6 @@ function formatRoundTime(value) {
   });
 }
 
-function visibleRounds() {
-  if (state.feedScope === 'all') return state.cachedRounds;
-  return state.cachedRounds.filter((roundDoc) => {
-    const data = roundDoc.data();
-    return data.roomId === state.roomId;
-  });
-}
-
 function updateStats(docs) {
   const roundsCount = docs.length;
   statRounds.textContent = String(roundsCount);
@@ -202,7 +193,7 @@ function updateStats(docs) {
   if (roundsCount === 0) {
     statAvgMinutes.textContent = '0 мин';
     statTopSpy.textContent = '-';
-    statsStatus.textContent = state.feedScope === 'all' ? 'Нет данных по всем комнатам.' : `Нет данных для комнаты ${state.roomLabel}.`;
+    statsStatus.textContent = `Нет данных для комнаты ${state.roomLabel || '-'}.`;
     return;
   }
 
@@ -226,9 +217,7 @@ function updateStats(docs) {
   });
 
   statTopSpy.textContent = `${topSpyName} (${topSpyCount})`;
-  statsStatus.textContent = state.feedScope === 'all'
-    ? 'Статистика по всем комнатам (последние 100 раундов).'
-    : `Статистика комнаты ${state.roomLabel}.`;
+  statsStatus.textContent = `Статистика комнаты ${state.roomLabel || '-'}.`;
 }
 
 function renderLiveRounds(docs) {
@@ -237,9 +226,7 @@ function renderLiveRounds(docs) {
   if (docs.length === 0) {
     const li = document.createElement('li');
     li.className = 'live-round-item';
-    li.textContent = state.feedScope === 'all'
-      ? 'Пока нет сохраненных раундов.'
-      : `В комнате ${state.roomLabel} пока нет сохраненных раундов.`;
+    li.textContent = `В комнате ${state.roomLabel || '-'} пока нет сохраненных раундов.`;
     liveRoundsList.appendChild(li);
     updateStats(docs);
     return;
@@ -267,19 +254,23 @@ function renderLiveRounds(docs) {
 }
 
 function rerenderFromCache() {
-  const docs = visibleRounds();
-  renderLiveRounds(docs);
+  renderLiveRounds(state.cachedRounds);
 }
 
 function startLiveRoundsSync() {
-  if (!db || !firebaseReady) return;
+  if (!db || !firebaseReady || !state.roomId) return;
 
   if (state.liveRoundsUnsub) {
     state.liveRoundsUnsub();
     state.liveRoundsUnsub = null;
   }
 
-  const roundsQuery = query(collection(db, 'spy_rounds'), orderBy('createdAt', 'desc'), limit(100));
+  const roundsQuery = query(
+    collection(db, 'spy_rounds'),
+    where('roomId', '==', state.roomId),
+    orderBy('createdAt', 'desc'),
+    limit(100)
+  );
   state.liveRoundsUnsub = onSnapshot(
     roundsQuery,
     (snapshot) => {
@@ -292,22 +283,18 @@ function startLiveRoundsSync() {
   );
 }
 
-function applyFeedScope(value) {
-  state.feedScope = value === 'all' ? 'all' : 'room';
-
+function refreshRoomBinding() {
+  feedRoomCaption.textContent = `Показана комната: ${state.roomLabel || '-'}.`;
   if (!db) {
     setLiveRoundsStatus('Firebase не настроен: общая лента отключена.', 'error');
   } else if (!firebaseReady) {
     setLiveRoundsStatus('Подключение к общей базе...', 'muted');
+  } else if (!state.roomId) {
+    setLiveRoundsStatus('Укажи комнату, чтобы включить синхронизацию.', 'muted');
   } else {
-    setLiveRoundsStatus(
-      state.feedScope === 'all'
-        ? 'Онлайн: показаны все комнаты.'
-        : `Онлайн: показана комната ${state.roomLabel || '-'}.`,
-      'ok'
-    );
+    setLiveRoundsStatus(`Онлайн: синхронизация комнаты ${state.roomLabel || '-'}.`, 'ok');
+    startLiveRoundsSync();
   }
-
   rerenderFromCache();
 }
 
@@ -375,9 +362,7 @@ function startRound() {
     setFirebaseStatus('Firebase подключен. Результат будет сохранен после открытия ответа.');
   }
 
-  if (state.feedScope === 'room') {
-    applyFeedScope('room');
-  }
+  refreshRoomBinding();
 
   setupCard.classList.add('hidden');
   gameCard.classList.remove('hidden');
@@ -447,8 +432,7 @@ if (hasValidFirebaseConfig(firebaseConfig)) {
     .then((authResult) => {
       firebaseReady = true;
       state.authUid = authResult.user.uid;
-      setLiveRoundsStatus('Онлайн: изменения синхронизируются для всех.', 'ok');
-      startLiveRoundsSync();
+      refreshRoomBinding();
     })
     .catch((error) => {
       firebaseReady = false;
@@ -471,16 +455,14 @@ hostRevealBtn.addEventListener('click', () => {
   showHostAnswer();
 });
 newRoundBtn.addEventListener('click', resetToSetup);
-feedScopeSelect.addEventListener('change', (event) => {
-  applyFeedScope(event.target.value);
-});
 hostInput.addEventListener('input', (event) => {
   state.hostName = event.target.value.trim();
 });
 roomInput.addEventListener('input', (event) => {
   state.roomLabel = event.target.value.trim();
   state.roomId = normalizeRoomId(state.roomLabel);
-  if (state.feedScope === 'room') rerenderFromCache();
+  state.cachedRounds = [];
+  refreshRoomBinding();
 });
 
-applyFeedScope(feedScopeSelect.value);
+refreshRoomBinding();

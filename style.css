@@ -204,17 +204,6 @@ select:focus {
   margin-top: 0;
 }
 
-.feed-controls {
-  display: flex;
-  align-items: end;
-  gap: 10px;
-}
-
-.feed-label {
-  margin: 0;
-  min-width: 95px;
-}
-
 .live-rounds {
   list-style: none;
   margin: 12px 0 0;
@@ -313,8 +302,4 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
-  .feed-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
