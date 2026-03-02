@@ -175,6 +175,7 @@ const LOCAL_AVATAR_KEY = 'spy_player_avatar';
 const LOCAL_ROOM_KEY = 'spy_room_code';
 const LOCAL_EXPECTED_KEY = 'spy_expected_players';
 const LOCAL_SPY_COUNT_KEY = 'spy_count';
+const LOCAL_SPY_MODE_KEY = 'spy_mode';
 const LOCAL_CATEGORY_KEY = 'spy_location_category';
 const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
 
@@ -189,6 +190,7 @@ const avatarPreview = document.getElementById('avatarPreview');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const expectedPlayersInput = document.getElementById('expectedPlayersInput');
 const spyCountInput = document.getElementById('spyCountInput');
+const spyModeInput = document.getElementById('spyModeInput');
 const categoryInput = document.getElementById('categoryInput');
 const difficultyInput = document.getElementById('difficultyInput');
 const joinBtn = document.getElementById('joinBtn');
@@ -237,6 +239,7 @@ const state = {
   roomCode: localStorage.getItem(LOCAL_ROOM_KEY) || '',
   expectedPlayers: Number(localStorage.getItem(LOCAL_EXPECTED_KEY) || 3),
   spyCount: Number(localStorage.getItem(LOCAL_SPY_COUNT_KEY) || 1),
+  spyMode: localStorage.getItem(LOCAL_SPY_MODE_KEY) || 'blind',
   locationCategory: localStorage.getItem(LOCAL_CATEGORY_KEY) || 'all',
   locationDifficulty: localStorage.getItem(LOCAL_DIFFICULTY_KEY) || 'all',
   roomData: null,
@@ -423,14 +426,23 @@ function buildRoundRevealToken(roomData) {
 
 function showRoleReveal(roomData, iAmSpy, iAmEliminated) {
   const spyCount = Number(roomData.spyCount || getSpyIdsFromRoom(roomData).length || 1);
+  const spyMode = roomData.spyMode || state.spyMode || 'blind';
   if (iAmEliminated) {
     roleRevealTitle.className = '';
     roleRevealTitle.textContent = 'Карта роли';
     roleRevealText.textContent = 'Роль: ожидание. Локация: недоступна до нового раунда.';
   } else if (iAmSpy) {
+    const spyIds = getSpyIdsFromRoom(roomData);
+    const partnerNames = state.players
+      .filter((player) => spyIds.includes(player.id) && player.id !== state.myId)
+      .map((player) => player.name);
+    const partnerText = spyMode === 'known' && partnerNames.length > 0
+      ? ` Напарники: ${partnerNames.join(', ')}.`
+      : '';
+
     roleRevealTitle.className = 'role-reveal-title-spy';
     roleRevealTitle.textContent = 'Карта роли';
-    roleRevealText.textContent = `Роль: ШПИОН (${spyCount} в раунде). Локация: скрыта.`;
+    roleRevealText.textContent = `Роль: ШПИОН (${spyCount} в раунде). Режим: ${spyMode === 'known' ? 'сговор' : 'вслепую'}. Локация: скрыта.${partnerText}`;
   } else {
     roleRevealTitle.className = 'role-reveal-title-safe';
     roleRevealTitle.textContent = 'Карта роли';
@@ -753,9 +765,11 @@ function renderRoom() {
   const roomCategory = room.locationCategory || state.locationCategory || 'all';
   const roomDifficulty = room.locationDifficulty || state.locationDifficulty || 'all';
   const roomSpyCount = Number(room.spyCount || state.spyCount || 1);
+  const roomSpyMode = room.spyMode || state.spyMode || 'blind';
   categoryInput.value = roomCategory;
   difficultyInput.value = roomDifficulty;
   spyCountInput.value = String(roomSpyCount);
+  spyModeInput.value = roomSpyMode;
   lobbyRoomText.textContent = `Комната: ${state.roomCode}`;
   roundText.textContent = `Раунд #${roundNumber}`;
   gameRoomText.textContent = `Комната: ${state.roomCode}`;
@@ -820,9 +834,10 @@ function renderRoom() {
     chatPanel.classList.add('hidden');
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
+    const spyModeLabel = roomSpyMode === 'known' ? 'сговор' : 'вслепую';
     lobbyStatus.textContent = activeCount === expected
-      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount}. Фильтр: ${roomCategory}/${roomDifficulty}.`
-      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
+      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Фильтр: ${roomCategory}/${roomDifficulty}.`
+      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Фильтр: ${roomCategory}/${roomDifficulty}.`;
   }
 }
 
@@ -889,11 +904,13 @@ function subscribeRoom() {
         const activeCount = state.players.filter(isPlayerActive).length;
         const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
         const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
+        const spyMode = state.roomData.spyMode || state.spyMode || 'blind';
+        const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
         const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
         const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
         lobbyStatus.textContent = activeCount === expected
-          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount}. Фильтр: ${roomCategory}/${roomDifficulty}.`
-          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount}. Фильтр: ${roomCategory}/${roomDifficulty}.`;
+          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Фильтр: ${roomCategory}/${roomDifficulty}.`
+          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Фильтр: ${roomCategory}/${roomDifficulty}.`;
       }
     },
     (error) => {
@@ -943,6 +960,7 @@ async function ensureRoomAndJoin() {
         roundNumber: 1,
         expectedPlayers: state.expectedPlayers,
         spyCount: state.spyCount,
+        spyMode: state.spyMode,
         locationCategory: state.locationCategory,
         locationDifficulty: state.locationDifficulty,
         locationHistory: {},
@@ -955,6 +973,7 @@ async function ensureRoomAndJoin() {
       const data = snap.data();
       const currentExpected = Number(data.expectedPlayers || 3);
       const currentSpyCount = Number(data.spyCount || 1);
+      const currentSpyMode = data.spyMode || 'blind';
       const currentCategory = data.locationCategory || 'all';
       const currentDifficulty = data.locationDifficulty || 'all';
 
@@ -962,12 +981,14 @@ async function ensureRoomAndJoin() {
         data.ownerId === state.myId &&
         (currentExpected !== state.expectedPlayers ||
           currentSpyCount !== state.spyCount ||
+          currentSpyMode !== state.spyMode ||
           currentCategory !== state.locationCategory ||
           currentDifficulty !== state.locationDifficulty)
       ) {
         tx.update(room, {
           expectedPlayers: state.expectedPlayers,
           spyCount: state.spyCount,
+          spyMode: state.spyMode,
           locationCategory: state.locationCategory,
           locationDifficulty: state.locationDifficulty,
           updatedAt: serverTimestamp()
@@ -975,6 +996,7 @@ async function ensureRoomAndJoin() {
       } else {
         state.expectedPlayers = currentExpected;
         state.spyCount = currentSpyCount;
+        state.spyMode = currentSpyMode;
         state.locationCategory = currentCategory;
         state.locationDifficulty = currentDifficulty;
       }
@@ -1013,6 +1035,7 @@ async function joinRoom() {
   const code = normalizeRoomCode(roomCodeInput.value);
   const expected = Number(expectedPlayersInput.value);
   const spyCount = Number(spyCountInput.value);
+  const spyMode = spyModeInput.value;
   const category = categoryInput.value;
   const difficulty = difficultyInput.value;
 
@@ -1041,6 +1064,11 @@ async function joinRoom() {
     return;
   }
 
+  if (!['blind', 'known'].includes(spyMode)) {
+    joinError.textContent = 'Неизвестный режим шпионов.';
+    return;
+  }
+
   if (!['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip'].includes(category)) {
     joinError.textContent = 'Неизвестная категория.';
     return;
@@ -1056,6 +1084,7 @@ async function joinRoom() {
   state.roomCode = code;
   state.expectedPlayers = expected;
   state.spyCount = spyCount;
+  state.spyMode = spyMode;
   state.locationCategory = category;
   state.locationDifficulty = difficulty;
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
@@ -1063,6 +1092,7 @@ async function joinRoom() {
   localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
   localStorage.setItem(LOCAL_EXPECTED_KEY, String(state.expectedPlayers));
   localStorage.setItem(LOCAL_SPY_COUNT_KEY, String(state.spyCount));
+  localStorage.setItem(LOCAL_SPY_MODE_KEY, state.spyMode);
   localStorage.setItem(LOCAL_CATEGORY_KEY, state.locationCategory);
   localStorage.setItem(LOCAL_DIFFICULTY_KEY, state.locationDifficulty);
 
@@ -1120,6 +1150,7 @@ async function startRound() {
         spyIds,
         spyUids,
         spyCount,
+        spyMode: data.spyMode || state.spyMode || 'blind',
         spyId: deleteField(),
         spyUid: deleteField(),
         location: picked.name,
@@ -1225,6 +1256,7 @@ async function resetRound() {
         spyIds,
         spyUids,
         spyCount,
+        spyMode: data.spyMode || state.spyMode || 'blind',
         spyId: deleteField(),
         spyUid: deleteField(),
         location: picked.name,
@@ -1313,6 +1345,7 @@ function restoreInputs() {
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
   spyCountInput.value = String(Math.max(1, Math.min(4, state.spyCount || 1)));
+  spyModeInput.value = state.spyMode === 'known' ? 'known' : 'blind';
   categoryInput.value = state.locationCategory;
   difficultyInput.value = state.locationDifficulty;
   renderAvatarPreview(state.myAvatar, state.myName);
