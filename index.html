@@ -18,6 +18,12 @@
       <h1>ШПИОН</h1>
       <p class="lead">Один игрок не знает локацию. Остальные пытаются вычислить шпиона по вопросам.</p>
 
+      <label for="hostInput" class="label">Твой ник</label>
+      <input id="hostInput" type="text" maxlength="40" placeholder="Например: Oleg">
+
+      <label for="roomInput" class="label">Комната</label>
+      <input id="roomInput" type="text" maxlength="40" placeholder="Например: moscow-1">
+
       <label for="playersInput" class="label">Игроки (через запятую или с новой строки)</label>
       <textarea id="playersInput" rows="6" placeholder="Олег, Аня, Дима, Ира"></textarea>
 
@@ -55,8 +61,34 @@
 
     <section class="card feed-card">
       <h2>Общая лента раундов</h2>
+      <div class="feed-controls">
+        <label for="feedScopeSelect" class="label feed-label">Показывать</label>
+        <select id="feedScopeSelect">
+          <option value="room">Только мою комнату</option>
+          <option value="all">Все комнаты</option>
+        </select>
+      </div>
       <p id="liveRoundsStatus" class="hint">Подключение к общей базе...</p>
       <ul id="liveRoundsList" class="live-rounds"></ul>
+    </section>
+
+    <section class="card stats-card">
+      <h2>Статистика</h2>
+      <p id="statsStatus" class="hint">Ожидание данных...</p>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <p class="stat-label">Раундов</p>
+          <p id="statRounds" class="stat-value">0</p>
+        </div>
+        <div class="stat-box">
+          <p class="stat-label">Средняя длительность</p>
+          <p id="statAvgMinutes" class="stat-value">0 мин</p>
+        </div>
+        <div class="stat-box">
+          <p class="stat-label">Чаще шпион</p>
+          <p id="statTopSpy" class="stat-value">-</p>
+        </div>
+      </div>
     </section>
   </main>
 

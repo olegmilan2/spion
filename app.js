@@ -36,11 +36,19 @@ const state = {
   roundMinutes: 0,
   roundStartedAt: '',
   resultSaved: false,
-  liveRoundsUnsub: null
+  liveRoundsUnsub: null,
+  hostName: '',
+  roomId: '',
+  roomLabel: '',
+  feedScope: 'room',
+  cachedRounds: [],
+  authUid: ''
 };
 
 const setupCard = document.getElementById('setupCard');
 const gameCard = document.getElementById('gameCard');
+const hostInput = document.getElementById('hostInput');
+const roomInput = document.getElementById('roomInput');
 const playersInput = document.getElementById('playersInput');
 const minutesInput = document.getElementById('minutesInput');
 const startBtn = document.getElementById('startBtn');
@@ -59,6 +67,11 @@ const firebaseStatus = document.getElementById('firebaseStatus');
 const newRoundBtn = document.getElementById('newRoundBtn');
 const liveRoundsStatus = document.getElementById('liveRoundsStatus');
 const liveRoundsList = document.getElementById('liveRoundsList');
+const feedScopeSelect = document.getElementById('feedScopeSelect');
+const statsStatus = document.getElementById('statsStatus');
+const statRounds = document.getElementById('statRounds');
+const statAvgMinutes = document.getElementById('statAvgMinutes');
+const statTopSpy = document.getElementById('statTopSpy');
 const firebaseConfig = window.FIREBASE_CONFIG || null;
 
 let db = null;
@@ -68,26 +81,6 @@ function hasValidFirebaseConfig(config) {
   if (!config) return false;
   const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
   return requiredKeys.every((key) => typeof config[key] === 'string' && config[key] && !config[key].includes('YOUR_'));
-}
-
-if (hasValidFirebaseConfig(firebaseConfig)) {
-  const app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-
-  const auth = getAuth(app);
-  signInAnonymously(auth)
-    .then(() => {
-      firebaseReady = true;
-      setLiveRoundsStatus('Онлайн: изменения синхронизируются для всех.', 'ok');
-      startLiveRoundsSync();
-    })
-    .catch((error) => {
-      firebaseReady = false;
-      console.error('Firebase auth error:', error.message);
-      setLiveRoundsStatus(`Ошибка авторизации Firebase: ${error.message}`, 'error');
-    });
-} else {
-  setLiveRoundsStatus('Firebase не настроен: общая лента отключена.', 'error');
 }
 
 function randomInt(max) {
@@ -105,6 +98,20 @@ function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function setFirebaseStatus(message, type = 'muted') {
+  firebaseStatus.textContent = message;
+  firebaseStatus.dataset.type = type;
+}
+
+function setLiveRoundsStatus(message, type = 'muted') {
+  liveRoundsStatus.textContent = message;
+  liveRoundsStatus.dataset.type = type;
+}
+
+function normalizeRoomId(value) {
+  return value.trim().toLowerCase().replace(/\s+/g, '-').slice(0, 40);
 }
 
 function updatePlayerView() {
@@ -133,84 +140,12 @@ function showRole() {
 
 function endRevealPhase() {
   playerName.textContent = 'Раунд начался';
-  progressText.textContent = 'Роли выданы';
+  progressText.textContent = `Комната: ${state.roomLabel}`;
   hintText.textContent = 'Обсуждайте и задавайте вопросы.';
   roleCard.className = 'role-card hidden';
   showRoleBtn.classList.add('hidden');
   nextBtn.classList.add('hidden');
   roundEnd.classList.remove('hidden');
-}
-
-function setFirebaseStatus(message, type = 'muted') {
-  firebaseStatus.textContent = message;
-  firebaseStatus.dataset.type = type;
-}
-
-function setLiveRoundsStatus(message, type = 'muted') {
-  liveRoundsStatus.textContent = message;
-  liveRoundsStatus.dataset.type = type;
-}
-
-function formatRoundTime(value) {
-  if (!value) return 'время неизвестно';
-  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return 'время неизвестно';
-  return date.toLocaleString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: '2-digit'
-  });
-}
-
-function renderLiveRounds(docs) {
-  liveRoundsList.innerHTML = '';
-
-  if (docs.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'live-round-item';
-    li.textContent = 'Пока нет сохраненных раундов.';
-    liveRoundsList.appendChild(li);
-    return;
-  }
-
-  docs.forEach((roundDoc) => {
-    const data = roundDoc.data();
-    const li = document.createElement('li');
-    li.className = 'live-round-item';
-
-    const main = document.createElement('p');
-    main.className = 'live-round-main';
-    main.textContent = `${data.spyName || 'Неизвестно'} был шпионом на локации "${data.location || 'Неизвестно'}"`;
-
-    const meta = document.createElement('p');
-    meta.className = 'live-round-meta';
-    meta.textContent = `Игроков: ${data.playersCount || 0} • Раунд: ${data.roundMinutes || 0} мин • ${formatRoundTime(data.createdAt || data.finishedAtIso)}`;
-
-    li.appendChild(main);
-    li.appendChild(meta);
-    liveRoundsList.appendChild(li);
-  });
-}
-
-function startLiveRoundsSync() {
-  if (!db || !firebaseReady) return;
-
-  if (state.liveRoundsUnsub) {
-    state.liveRoundsUnsub();
-    state.liveRoundsUnsub = null;
-  }
-
-  const roundsQuery = query(collection(db, 'spy_rounds'), orderBy('createdAt', 'desc'), limit(20));
-  state.liveRoundsUnsub = onSnapshot(
-    roundsQuery,
-    (snapshot) => {
-      renderLiveRounds(snapshot.docs);
-    },
-    (error) => {
-      setLiveRoundsStatus(`Ошибка чтения ленты: ${error.message}`, 'error');
-    }
-  );
 }
 
 function nextPlayer() {
@@ -240,9 +175,171 @@ function startTimer(minutes) {
   state.timerId = setInterval(tickTimer, 1000);
 }
 
+function formatRoundTime(value) {
+  if (!value) return 'время неизвестно';
+  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+  if (Number.isNaN(date.getTime())) return 'время неизвестно';
+  return date.toLocaleString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit'
+  });
+}
+
+function visibleRounds() {
+  if (state.feedScope === 'all') return state.cachedRounds;
+  return state.cachedRounds.filter((roundDoc) => {
+    const data = roundDoc.data();
+    return data.roomId === state.roomId;
+  });
+}
+
+function updateStats(docs) {
+  const roundsCount = docs.length;
+  statRounds.textContent = String(roundsCount);
+
+  if (roundsCount === 0) {
+    statAvgMinutes.textContent = '0 мин';
+    statTopSpy.textContent = '-';
+    statsStatus.textContent = state.feedScope === 'all' ? 'Нет данных по всем комнатам.' : `Нет данных для комнаты ${state.roomLabel}.`;
+    return;
+  }
+
+  const totalMinutes = docs.reduce((sum, docItem) => sum + (Number(docItem.data().roundMinutes) || 0), 0);
+  const avgMinutes = (totalMinutes / roundsCount).toFixed(1);
+  statAvgMinutes.textContent = `${avgMinutes} мин`;
+
+  const spyFrequency = new Map();
+  docs.forEach((docItem) => {
+    const spyName = docItem.data().spyName || 'Неизвестно';
+    spyFrequency.set(spyName, (spyFrequency.get(spyName) || 0) + 1);
+  });
+
+  let topSpyName = '-';
+  let topSpyCount = 0;
+  spyFrequency.forEach((count, spyName) => {
+    if (count > topSpyCount) {
+      topSpyCount = count;
+      topSpyName = spyName;
+    }
+  });
+
+  statTopSpy.textContent = `${topSpyName} (${topSpyCount})`;
+  statsStatus.textContent = state.feedScope === 'all'
+    ? 'Статистика по всем комнатам (последние 100 раундов).'
+    : `Статистика комнаты ${state.roomLabel}.`;
+}
+
+function renderLiveRounds(docs) {
+  liveRoundsList.innerHTML = '';
+
+  if (docs.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'live-round-item';
+    li.textContent = state.feedScope === 'all'
+      ? 'Пока нет сохраненных раундов.'
+      : `В комнате ${state.roomLabel} пока нет сохраненных раундов.`;
+    liveRoundsList.appendChild(li);
+    updateStats(docs);
+    return;
+  }
+
+  docs.forEach((roundDoc) => {
+    const data = roundDoc.data();
+    const li = document.createElement('li');
+    li.className = 'live-round-item';
+
+    const main = document.createElement('p');
+    main.className = 'live-round-main';
+    main.textContent = `${data.spyName || 'Неизвестно'} был шпионом на локации "${data.location || 'Неизвестно'}"`;
+
+    const meta = document.createElement('p');
+    meta.className = 'live-round-meta';
+    meta.textContent = `Комната: ${data.roomLabel || data.roomId || '-'} • Ведущий: ${data.hostName || '-'} • Игроков: ${data.playersCount || 0} • Раунд: ${data.roundMinutes || 0} мин • ${formatRoundTime(data.createdAt || data.finishedAtIso)}`;
+
+    li.appendChild(main);
+    li.appendChild(meta);
+    liveRoundsList.appendChild(li);
+  });
+
+  updateStats(docs);
+}
+
+function rerenderFromCache() {
+  const docs = visibleRounds();
+  renderLiveRounds(docs);
+}
+
+function startLiveRoundsSync() {
+  if (!db || !firebaseReady) return;
+
+  if (state.liveRoundsUnsub) {
+    state.liveRoundsUnsub();
+    state.liveRoundsUnsub = null;
+  }
+
+  const roundsQuery = query(collection(db, 'spy_rounds'), orderBy('createdAt', 'desc'), limit(100));
+  state.liveRoundsUnsub = onSnapshot(
+    roundsQuery,
+    (snapshot) => {
+      state.cachedRounds = snapshot.docs;
+      rerenderFromCache();
+    },
+    (error) => {
+      setLiveRoundsStatus(`Ошибка чтения ленты: ${error.message}`, 'error');
+    }
+  );
+}
+
+function applyFeedScope(value) {
+  state.feedScope = value === 'all' ? 'all' : 'room';
+
+  if (!db) {
+    setLiveRoundsStatus('Firebase не настроен: общая лента отключена.', 'error');
+  } else if (!firebaseReady) {
+    setLiveRoundsStatus('Подключение к общей базе...', 'muted');
+  } else {
+    setLiveRoundsStatus(
+      state.feedScope === 'all'
+        ? 'Онлайн: показаны все комнаты.'
+        : `Онлайн: показана комната ${state.roomLabel || '-'}.`,
+      'ok'
+    );
+  }
+
+  rerenderFromCache();
+}
+
+function restoreProfile() {
+  const savedHost = localStorage.getItem('spy_host_name') || '';
+  const savedRoom = localStorage.getItem('spy_room_label') || '';
+
+  hostInput.value = savedHost;
+  roomInput.value = savedRoom;
+}
+
+function persistProfile() {
+  localStorage.setItem('spy_host_name', state.hostName);
+  localStorage.setItem('spy_room_label', state.roomLabel);
+}
+
 function startRound() {
   const players = parsePlayers(playersInput.value);
   const minutes = Number(minutesInput.value);
+  const hostName = hostInput.value.trim();
+  const roomLabel = roomInput.value.trim();
+  const roomId = normalizeRoomId(roomLabel);
+
+  if (!hostName) {
+    setupError.textContent = 'Укажи ник ведущего.';
+    return;
+  }
+
+  if (!roomId) {
+    setupError.textContent = 'Укажи название комнаты.';
+    return;
+  }
 
   if (players.length < 3) {
     setupError.textContent = 'Нужно минимум 3 игрока.';
@@ -255,6 +352,9 @@ function startRound() {
   }
 
   setupError.textContent = '';
+  state.hostName = hostName;
+  state.roomId = roomId;
+  state.roomLabel = roomLabel;
   state.players = players;
   state.spyIndex = randomInt(players.length);
   state.location = LOCATIONS[randomInt(LOCATIONS.length)];
@@ -265,12 +365,18 @@ function startRound() {
   roundEnd.classList.add('hidden');
   hostAnswer.classList.add('hidden');
   hostAnswer.textContent = '';
+  persistProfile();
+
   if (!db) {
     setFirebaseStatus('Firebase не настроен: результат сохранен не будет.');
   } else if (!firebaseReady) {
     setFirebaseStatus('Подключение к Firebase...');
   } else {
     setFirebaseStatus('Firebase подключен. Результат будет сохранен после открытия ответа.');
+  }
+
+  if (state.feedScope === 'room') {
+    applyFeedScope('room');
   }
 
   setupCard.classList.add('hidden');
@@ -290,7 +396,11 @@ async function saveRoundResult() {
     roundMinutes: state.roundMinutes,
     startedAtIso: state.roundStartedAt,
     finishedAtIso: new Date().toISOString(),
-    createdAt: serverTimestamp()
+    createdAt: serverTimestamp(),
+    roomId: state.roomId,
+    roomLabel: state.roomLabel,
+    hostName: state.hostName,
+    createdByUid: state.authUid
   };
 
   await addDoc(collection(db, 'spy_rounds'), payload);
@@ -328,6 +438,32 @@ function resetToSetup() {
   setupCard.classList.remove('hidden');
 }
 
+if (hasValidFirebaseConfig(firebaseConfig)) {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+
+  const auth = getAuth(app);
+  signInAnonymously(auth)
+    .then((authResult) => {
+      firebaseReady = true;
+      state.authUid = authResult.user.uid;
+      setLiveRoundsStatus('Онлайн: изменения синхронизируются для всех.', 'ok');
+      startLiveRoundsSync();
+    })
+    .catch((error) => {
+      firebaseReady = false;
+      console.error('Firebase auth error:', error.message);
+      setLiveRoundsStatus(`Ошибка авторизации Firebase: ${error.message}`, 'error');
+    });
+} else {
+  setLiveRoundsStatus('Firebase не настроен: общая лента отключена.', 'error');
+}
+
+restoreProfile();
+state.hostName = hostInput.value.trim();
+state.roomLabel = roomInput.value.trim();
+state.roomId = normalizeRoomId(state.roomLabel);
+
 startBtn.addEventListener('click', startRound);
 showRoleBtn.addEventListener('click', showRole);
 nextBtn.addEventListener('click', nextPlayer);
@@ -335,3 +471,16 @@ hostRevealBtn.addEventListener('click', () => {
   showHostAnswer();
 });
 newRoundBtn.addEventListener('click', resetToSetup);
+feedScopeSelect.addEventListener('change', (event) => {
+  applyFeedScope(event.target.value);
+});
+hostInput.addEventListener('input', (event) => {
+  state.hostName = event.target.value.trim();
+});
+roomInput.addEventListener('input', (event) => {
+  state.roomLabel = event.target.value.trim();
+  state.roomId = normalizeRoomId(state.roomLabel);
+  if (state.feedScope === 'room') rerenderFromCache();
+});
+
+applyFeedScope(feedScopeSelect.value);

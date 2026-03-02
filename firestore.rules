@@ -11,7 +11,11 @@ service cloud.firestore {
           'roundMinutes',
           'startedAtIso',
           'finishedAtIso',
-          'createdAt'
+          'createdAt',
+          'roomId',
+          'roomLabel',
+          'hostName',
+          'createdByUid'
         ])
         && request.resource.data.players is list
         && request.resource.data.players.size() >= 3
@@ -20,7 +24,11 @@ service cloud.firestore {
         && request.resource.data.location is string
         && request.resource.data.roundMinutes is number
         && request.resource.data.startedAtIso is string
-        && request.resource.data.finishedAtIso is string;
+        && request.resource.data.finishedAtIso is string
+        && request.resource.data.roomId is string
+        && request.resource.data.roomLabel is string
+        && request.resource.data.hostName is string
+        && request.resource.data.createdByUid == request.auth.uid;
 
       allow read: if request.auth != null;
       allow update, delete: if false;
