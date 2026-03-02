@@ -1,8 +1,10 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
 import {
+  addDoc,
   collection,
   doc,
   getFirestore,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -202,6 +204,10 @@ const roleHint = document.getElementById('roleHint');
 const votePanel = document.getElementById('votePanel');
 const voteCandidates = document.getElementById('voteCandidates');
 const voteStatus = document.getElementById('voteStatus');
+const chatPanel = document.getElementById('chatPanel');
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSendBtn = document.getElementById('chatSendBtn');
 const gameStatus = document.getElementById('gameStatus');
 const newRoundBtn = document.getElementById('newRoundBtn');
 const leaveFromGameBtn = document.getElementById('leaveFromGameBtn');
@@ -219,9 +225,11 @@ const state = {
   roomData: null,
   players: [],
   votes: [],
+  chat: [],
   roomUnsub: null,
   playersUnsub: null,
   votesUnsub: null,
+  chatUnsub: null,
   presenceTimerId: null
 };
 
@@ -478,6 +486,73 @@ function renderVotePanel() {
   });
 }
 
+function formatChatTime(value) {
+  const ms = toMillis(value);
+  if (!ms) return '';
+  return new Date(ms).toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function renderChat() {
+  if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) {
+    chatPanel.classList.add('hidden');
+    return;
+  }
+
+  chatPanel.classList.remove('hidden');
+  chatMessages.innerHTML = '';
+
+  if (state.chat.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'chat-message';
+    li.textContent = 'Чат пуст. Напиши первое сообщение.';
+    chatMessages.appendChild(li);
+    return;
+  }
+
+  state.chat.forEach((msg) => {
+    const li = document.createElement('li');
+    li.className = 'chat-message';
+
+    const meta = document.createElement('p');
+    meta.className = 'chat-meta';
+    const time = formatChatTime(msg.createdAt);
+    meta.textContent = `${msg.senderName || 'Игрок'}${time ? ` • ${time}` : ''}`;
+
+    const text = document.createElement('p');
+    text.className = 'chat-text';
+    text.textContent = msg.text || '';
+
+    li.appendChild(meta);
+    li.appendChild(text);
+    chatMessages.appendChild(li);
+  });
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendChatMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) return;
+
+  try {
+    await addDoc(chatCollectionRef(), {
+      senderId: state.myId,
+      senderName: state.myName,
+      senderUid: state.authUid,
+      roundNumber: state.roomData.roundNumber || 1,
+      text: text.slice(0, 180),
+      createdAt: serverTimestamp()
+    });
+    chatInput.value = '';
+  } catch (error) {
+    gameStatus.textContent = `Ошибка отправки в чат: ${error.message}`;
+  }
+}
+
 function renderRoom() {
   const room = state.roomData;
   if (!room) return;
@@ -528,11 +603,13 @@ function renderRoom() {
       gameStatus.textContent = 'Раунд синхронизирован. Все игроки получили роли.';
       renderVotePanel();
     }
+    renderChat();
   } else {
     setVisible('lobby');
     roundAlert.className = 'round-alert hidden';
     roundAlert.textContent = '';
     votePanel.classList.add('hidden');
+    chatPanel.classList.add('hidden');
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
     lobbyStatus.textContent = activeCount === expected
@@ -554,6 +631,10 @@ function clearSubscriptions() {
     state.votesUnsub();
     state.votesUnsub = null;
   }
+  if (state.chatUnsub) {
+    state.chatUnsub();
+    state.chatUnsub = null;
+  }
 }
 
 function roomRef() {
@@ -566,6 +647,10 @@ function playerRef(playerId) {
 
 function voteRef(voterId) {
   return doc(state.db, 'rooms', state.roomCode, 'votes', voterId);
+}
+
+function chatCollectionRef() {
+  return collection(state.db, 'rooms', state.roomCode, 'chat');
 }
 
 function subscribeRoom() {
@@ -619,6 +704,18 @@ function subscribeRoom() {
     },
     (error) => {
       showGlobalStatus(`Ошибка votes snapshot: ${error.message}`, 'error');
+    }
+  );
+
+  const chatQuery = query(chatCollectionRef(), orderBy('createdAt', 'asc'), limit(60));
+  state.chatUnsub = onSnapshot(
+    chatQuery,
+    (snapshot) => {
+      state.chat = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+      renderChat();
+    },
+    (error) => {
+      showGlobalStatus(`Ошибка chat snapshot: ${error.message}`, 'error');
     }
   );
 }
@@ -937,6 +1034,7 @@ async function leaveRoom() {
   state.roomData = null;
   state.players = [];
   state.votes = [];
+  state.chat = [];
   setVisible('join');
 }
 
@@ -973,6 +1071,13 @@ startRoundBtn.addEventListener('click', startRound);
 newRoundBtn.addEventListener('click', resetRound);
 leaveRoomBtn.addEventListener('click', leaveRoom);
 leaveFromGameBtn.addEventListener('click', leaveRoom);
+chatSendBtn.addEventListener('click', sendChatMessage);
+chatInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    sendChatMessage();
+  }
+});
 
 window.addEventListener('beforeunload', () => {
   if (state.db && state.roomCode) {

@@ -78,6 +78,14 @@
         <ul id="voteCandidates" class="vote-list"></ul>
         <p id="voteStatus" class="hint"></p>
       </div>
+      <div id="chatPanel" class="chat-panel hidden">
+        <p class="hint">Мини-чат раунда</p>
+        <ul id="chatMessages" class="chat-messages"></ul>
+        <div class="chat-compose">
+          <input id="chatInput" type="text" maxlength="180" placeholder="Напиши сообщение...">
+          <button id="chatSendBtn" class="btn">Отправить</button>
+        </div>
+      </div>
       <div class="actions">
         <button id="newRoundBtn" class="btn btn-primary">Новый раунд</button>
         <button id="leaveFromGameBtn" class="btn">Выйти</button>

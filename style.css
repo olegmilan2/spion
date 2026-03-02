@@ -238,6 +238,52 @@ select:focus {
   text-align: left;
 }
 
+.chat-panel {
+  margin: 10px 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+.chat-messages {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.chat-message {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: #fffdf7;
+}
+
+.chat-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chat-text {
+  margin: 2px 0 0;
+  line-height: 1.3;
+}
+
+.chat-compose {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-compose input {
+  flex: 1;
+}
+
 .players-list {
   list-style: none;
   margin: 10px 0 14px;
@@ -288,5 +334,9 @@ select:focus {
 
   .actions .btn {
     width: 100%;
+  }
+
+  .chat-compose {
+    flex-direction: column;
   }
 }
