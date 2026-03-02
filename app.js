@@ -506,7 +506,8 @@ const state = {
   chatUnsub: null,
   presenceTimerId: null,
   lastRevealToken: '',
-  recoveringRoom: false
+  recoveringRoom: false,
+  quickQuestions: []
 };
 
 const QUICK_QUESTIONS = [
@@ -522,6 +523,8 @@ const QUICK_QUESTIONS = [
   'Что здесь было бы совсем неуместно?'
 ];
 
+state.quickQuestions = [...QUICK_QUESTIONS];
+
 localStorage.setItem(LOCAL_MY_ID_KEY, state.myId);
 
 function hasValidFirebaseConfig(config) {
@@ -532,6 +535,37 @@ function hasValidFirebaseConfig(config) {
 
 function normalizeRoomCode(input) {
   return input.trim().toLowerCase().replace(/\s+/g, '').slice(0, 20);
+}
+
+function normalizeAiArray(value, limit) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+async function requestAiRoundPack(category, difficulty, civiliansCount) {
+  if (window.location.protocol === 'file:') return null;
+  try {
+    const response = await fetch('/api/generate-round', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, difficulty, civiliansCount })
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    if (!payload?.ok || !payload?.data) return null;
+    const location = String(payload.data.location || '').trim();
+    if (!location) return null;
+    return {
+      location,
+      roles: normalizeAiArray(payload.data.roles, civiliansCount),
+      questions: normalizeAiArray(payload.data.questions, 10)
+    };
+  } catch (error) {
+    return null;
+  }
 }
 
 function setSpyModeUI(mode) {
@@ -669,6 +703,32 @@ function pickCivilianRoles(players, locationName, locationCategory) {
   });
 
   return rolesByPlayer;
+}
+
+function assignProvidedRoles(players, roles) {
+  const shuffledPlayers = pickDistinct(players, players.length);
+  const rolesByPlayer = {};
+  shuffledPlayers.forEach((player, index) => {
+    rolesByPlayer[player.id] = roles[index] || roles[roles.length - 1] || 'Сотрудник';
+  });
+  return rolesByPlayer;
+}
+
+function updateLocationHistoryWithPicked(roomData, pickedName) {
+  const category = roomData.locationCategory || 'all';
+  const difficulty = roomData.locationDifficulty || 'all';
+  const historyKey = getHistoryKey(category, difficulty);
+  const historyMap = roomData.locationHistory && typeof roomData.locationHistory === 'object'
+    ? roomData.locationHistory
+    : {};
+  const used = Array.isArray(historyMap[historyKey]) ? historyMap[historyKey] : [];
+  if (used.includes(pickedName)) {
+    return historyMap;
+  }
+  return {
+    ...historyMap,
+    [historyKey]: [...used, pickedName]
+  };
 }
 
 function getSpyIdsFromRoom(roomData) {
@@ -1263,7 +1323,10 @@ function renderChat() {
 function renderQuickQuestions() {
   if (!quickQuestions || !quickQuestionsList) return;
   quickQuestionsList.innerHTML = '';
-  QUICK_QUESTIONS.forEach((question) => {
+  const source = Array.isArray(state.quickQuestions) && state.quickQuestions.length > 0
+    ? state.quickQuestions
+    : QUICK_QUESTIONS;
+  source.forEach((question) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'quick-question-btn';
@@ -1322,6 +1385,10 @@ function renderRoom() {
   const roomSpyCount = Number(room.spyCount || state.spyCount || 1);
   const roomSpyMode = room.spyMode || state.spyMode || 'blind';
   const roomGameVariant = room.gameVariant || state.gameVariant || 'classic';
+  const roomQuickQuestions = Array.isArray(room.quickQuestions) && room.quickQuestions.length > 0
+    ? room.quickQuestions
+    : QUICK_QUESTIONS;
+  state.quickQuestions = roomQuickQuestions;
   setCategoryUI(roomCategory);
   difficultyInput.value = roomDifficulty;
   setSpyCountUI(Math.max(1, Math.min(2, roomSpyCount)));
@@ -1469,6 +1536,7 @@ async function recoverRoomToLobby() {
       foundSpyIds: [],
       voteStage: 1,
       resolvedVoteStage: 0,
+      quickQuestions: QUICK_QUESTIONS,
       updatedAt: serverTimestamp()
     });
     lobbyStatus.textContent = 'Комната была в старом раунде и автоматически возвращена в лобби.';
@@ -1582,6 +1650,7 @@ async function ensureRoomAndJoin() {
         locationCategory: state.locationCategory,
         locationDifficulty: state.locationDifficulty,
         locationHistory: {},
+        quickQuestions: QUICK_QUESTIONS,
         lastLocation: '',
         createdByUid: state.authUid,
         createdAt: serverTimestamp(),
@@ -1761,6 +1830,9 @@ async function startRound() {
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
   const civilianPlayers = eligiblePlayers.filter((player) => !spyIds.includes(player.id));
+  const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
+  const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
+  const aiPack = await requestAiRoundPack(roomCategory, roomDifficulty, civilianPlayers.length);
   const spyActions = {};
   if (gameVariant === 'hide') {
     spyIds.forEach((spyId, index) => {
@@ -1782,10 +1854,25 @@ async function startRound() {
         throw new Error('Раунд уже запущен другим игроком');
       }
 
-      const { picked, updatedHistory } = pickLocationForRoom(data);
+      const fallback = pickLocationForRoom(data);
+      const picked = aiPack?.location
+        ? {
+            name: aiPack.location,
+            category: data.locationCategory || roomCategory,
+            difficulty: data.locationDifficulty || roomDifficulty
+          }
+        : fallback.picked;
+      const updatedHistory = aiPack?.location
+        ? updateLocationHistoryWithPicked(data, picked.name)
+        : fallback.updatedHistory;
       const civilianRoles = gameVariant === 'classic_roles'
-        ? pickCivilianRoles(civilianPlayers, picked.name, picked.category)
+        ? aiPack?.roles && aiPack.roles.length >= civilianPlayers.length
+          ? assignProvidedRoles(civilianPlayers, aiPack.roles)
+          : pickCivilianRoles(civilianPlayers, picked.name, picked.category)
         : {};
+      const quickQuestions = aiPack?.questions && aiPack.questions.length > 0
+        ? aiPack.questions
+        : QUICK_QUESTIONS;
 
       tx.update(room, {
         state: 'started',
@@ -1803,6 +1890,7 @@ async function startRound() {
         locationCategory: data.locationCategory || 'all',
         locationDifficulty: data.locationDifficulty || 'all',
         locationHistory: updatedHistory,
+        quickQuestions,
         eliminatedPlayerId: deleteField(),
         eliminatedPlayerName: deleteField(),
         lastVoteResult: deleteField(),
@@ -1884,6 +1972,9 @@ async function resetRound() {
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
   const civilianPlayers = eligiblePlayers.filter((player) => !spyIds.includes(player.id));
+  const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
+  const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
+  const aiPack = await requestAiRoundPack(roomCategory, roomDifficulty, civilianPlayers.length);
   const spyActions = {};
   if (gameVariant === 'hide') {
     spyIds.forEach((spyId, index) => {
@@ -1902,10 +1993,25 @@ async function resetRound() {
 
       const data = snap.data();
       const nextRound = (data.roundNumber || 1) + 1;
-      const { picked, updatedHistory } = pickLocationForRoom(data);
+      const fallback = pickLocationForRoom(data);
+      const picked = aiPack?.location
+        ? {
+            name: aiPack.location,
+            category: data.locationCategory || roomCategory,
+            difficulty: data.locationDifficulty || roomDifficulty
+          }
+        : fallback.picked;
+      const updatedHistory = aiPack?.location
+        ? updateLocationHistoryWithPicked(data, picked.name)
+        : fallback.updatedHistory;
       const civilianRoles = gameVariant === 'classic_roles'
-        ? pickCivilianRoles(civilianPlayers, picked.name, picked.category)
+        ? aiPack?.roles && aiPack.roles.length >= civilianPlayers.length
+          ? assignProvidedRoles(civilianPlayers, aiPack.roles)
+          : pickCivilianRoles(civilianPlayers, picked.name, picked.category)
         : {};
+      const quickQuestions = aiPack?.questions && aiPack.questions.length > 0
+        ? aiPack.questions
+        : QUICK_QUESTIONS;
 
       tx.update(room, {
         state: 'started',
@@ -1924,6 +2030,7 @@ async function resetRound() {
         locationDifficulty: data.locationDifficulty || 'all',
         locationHistory: updatedHistory,
         lastLocation: picked.name,
+        quickQuestions,
         eliminatedPlayerId: deleteField(),
         eliminatedPlayerName: deleteField(),
         lastVoteResult: deleteField(),
