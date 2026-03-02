@@ -486,6 +486,11 @@ function renderVotePanel() {
   const playersForVote = activeAlivePlayers().filter((player) => player.id !== state.myId);
   const myVote = voteByMe();
   const votes = currentRoundVotes();
+  const voteCounts = new Map();
+  votes.forEach((vote) => {
+    if (!vote.targetPlayerId) return;
+    voteCounts.set(vote.targetPlayerId, (voteCounts.get(vote.targetPlayerId) || 0) + 1);
+  });
 
   if (state.roomData.lastVoteResult === 'wrong') {
     voteStatus.textContent = `Вы выбрали не того (${state.roomData.eliminatedPlayerName || 'игрок'} выбыл). Игра продолжается.`;
@@ -508,8 +513,15 @@ function renderVotePanel() {
     li.className = 'vote-item';
 
     const button = document.createElement('button');
-    button.className = 'btn';
-    button.textContent = myVote?.targetPlayerId === player.id ? `✓ ${player.name}` : player.name;
+    button.className = 'vote-card';
+    const isSelected = myVote?.targetPlayerId === player.id;
+    const votesForPlayer = voteCounts.get(player.id) || 0;
+    button.innerHTML = `
+      <span class="vote-card-name">${isSelected ? '✓ ' : ''}${player.name}</span>
+      <span class="vote-card-count">${votesForPlayer} голос(ов)</span>
+    `;
+    if (isSelected) button.classList.add('selected');
+    if (Boolean(myVote)) button.classList.add('disabled');
     button.disabled = Boolean(myVote);
     button.addEventListener('click', () => {
       castVote(player.id);
