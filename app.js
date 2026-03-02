@@ -835,6 +835,15 @@ async function resetRound() {
     return;
   }
 
+  const eligiblePlayers = state.players.filter(isPlayerActive);
+  const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
+  if (eligiblePlayers.length !== expected) {
+    gameStatus.textContent = `Невозможно начать сразу: нужно ровно ${expected} активных игроков, сейчас ${eligiblePlayers.length}.`;
+    return;
+  }
+
+  const spyPlayer = randomItem(eligiblePlayers);
+
   try {
     await runTransaction(state.db, async (tx) => {
       const room = roomRef();
@@ -846,22 +855,26 @@ async function resetRound() {
 
       const data = snap.data();
       const nextRound = (data.roundNumber || 1) + 1;
+      const { picked, updatedHistory } = pickLocationForRoom(data);
 
       tx.update(room, {
-        state: 'lobby',
+        state: 'started',
         roundNumber: nextRound,
-        spyId: deleteField(),
-        spyUid: deleteField(),
+        spyId: spyPlayer.id,
+        spyUid: spyPlayer.uid || '',
+        location: picked.name,
+        locationCategory: data.locationCategory || 'all',
+        locationDifficulty: data.locationDifficulty || 'all',
+        locationHistory: updatedHistory,
+        lastLocation: picked.name,
         eliminatedPlayerId: deleteField(),
         eliminatedPlayerName: deleteField(),
         lastVoteResult: deleteField(),
         winner: deleteField(),
-        voteStage: deleteField(),
-        resolvedVoteStage: deleteField(),
-        lastLocation: data.location || data.lastLocation || '',
-        location: deleteField(),
-        startedBy: deleteField(),
-        startedAt: deleteField(),
+        voteStage: 1,
+        resolvedVoteStage: 0,
+        startedBy: state.myId,
+        startedAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
     });
@@ -876,7 +889,7 @@ async function resetRound() {
       )
     );
 
-    gameStatus.textContent = 'Переключено в лобби. Можно запускать новый раунд.';
+    gameStatus.textContent = 'Новый раунд запущен сразу.';
   } catch (error) {
     gameStatus.textContent = `Ошибка нового раунда: ${error.message}`;
   }
