@@ -832,6 +832,10 @@ function getLobbyStarterPlayer(players = state.players) {
 }
 
 function canCurrentPlayerStartRound(players = state.players) {
+  const starterFromRoom = state.roomData?.lobbyStarterId || state.roomData?.ownerId;
+  if (starterFromRoom) {
+    return starterFromRoom === state.myId;
+  }
   const starter = getLobbyStarterPlayer(players);
   return Boolean(starter && starter.id === state.myId);
 }
@@ -1774,6 +1778,7 @@ async function ensureRoomAndJoin() {
       tx.set(room, {
         roomCode: state.roomCode,
         ownerId: state.myId,
+        lobbyStarterId: state.myId,
         state: 'lobby',
         roundNumber: 1,
         expectedPlayers: state.expectedPlayers,
@@ -1797,6 +1802,12 @@ async function ensureRoomAndJoin() {
       const currentGameVariant = data.gameVariant || 'classic';
       const currentCategory = data.locationCategory || 'all';
       const currentDifficulty = data.locationDifficulty || 'all';
+
+      if (!data.lobbyStarterId) {
+        tx.update(room, {
+          lobbyStarterId: data.ownerId || state.myId
+        });
+      }
 
       if (
         data.ownerId === state.myId &&
@@ -1992,10 +2003,8 @@ async function startRound() {
       if (data.state === 'started') {
         throw new Error('Раунд уже запущен другим игроком');
       }
-      const playersSnapshot = await tx.get(query(collection(state.db, 'rooms', state.roomCode, 'players'), orderBy('joinedAt')));
-      const playersInRoom = playersSnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-      const starter = getLobbyStarterPlayer(playersInRoom);
-      if (!starter || starter.id !== state.myId) {
+      const starterId = data.lobbyStarterId || data.ownerId || '';
+      if (starterId && starterId !== state.myId) {
         throw new Error('Только первый вошедший в лобби может начать игру');
       }
 
