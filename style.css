@@ -95,6 +95,37 @@ h2 {
   font-weight: 700;
 }
 
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mode-cell {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  padding: 10px;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+}
+
+.mode-cell strong {
+  font-size: 14px;
+}
+
+.mode-cell span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mode-cell.active {
+  border-color: #fb923c;
+  background: #fff7ed;
+}
+
 .avatar-picker-wrap {
   margin-top: 8px;
   display: flex;
@@ -514,5 +545,9 @@ select:focus {
 
   .chat-compose {
     flex-direction: column;
+  }
+
+  .mode-grid {
+    grid-template-columns: 1fr;
   }
 }

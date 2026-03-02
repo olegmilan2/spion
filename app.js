@@ -190,6 +190,7 @@ const avatarPreview = document.getElementById('avatarPreview');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const expectedPlayersInput = document.getElementById('expectedPlayersInput');
 const spyCountInput = document.getElementById('spyCountInput');
+const spyModeGrid = document.getElementById('spyModeGrid');
 const spyModeInput = document.getElementById('spyModeInput');
 const categoryInput = document.getElementById('categoryInput');
 const difficultyInput = document.getElementById('difficultyInput');
@@ -264,6 +265,14 @@ function hasValidFirebaseConfig(config) {
 
 function normalizeRoomCode(input) {
   return input.trim().toLowerCase().replace(/\s+/g, '').slice(0, 20);
+}
+
+function setSpyModeUI(mode) {
+  spyModeInput.value = mode === 'known' ? 'known' : 'blind';
+  const cells = spyModeGrid.querySelectorAll('.mode-cell');
+  cells.forEach((cell) => {
+    cell.classList.toggle('active', cell.dataset.mode === spyModeInput.value);
+  });
 }
 
 function randomItem(items) {
@@ -769,7 +778,7 @@ function renderRoom() {
   categoryInput.value = roomCategory;
   difficultyInput.value = roomDifficulty;
   spyCountInput.value = String(roomSpyCount);
-  spyModeInput.value = roomSpyMode;
+  setSpyModeUI(roomSpyMode);
   lobbyRoomText.textContent = `Комната: ${state.roomCode}`;
   roundText.textContent = `Раунд #${roundNumber}`;
   gameRoomText.textContent = `Комната: ${state.roomCode}`;
@@ -1345,7 +1354,7 @@ function restoreInputs() {
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
   spyCountInput.value = String(Math.max(1, Math.min(4, state.spyCount || 1)));
-  spyModeInput.value = state.spyMode === 'known' ? 'known' : 'blind';
+  setSpyModeUI(state.spyMode === 'known' ? 'known' : 'blind');
   categoryInput.value = state.locationCategory;
   difficultyInput.value = state.locationDifficulty;
   renderAvatarPreview(state.myAvatar, state.myName);
@@ -1371,6 +1380,11 @@ nameInput.addEventListener('input', () => {
   if (!state.myAvatar) {
     renderAvatarPreview('', nameInput.value.trim());
   }
+});
+spyModeGrid.querySelectorAll('.mode-cell').forEach((cell) => {
+  cell.addEventListener('click', () => {
+    setSpyModeUI(cell.dataset.mode || 'blind');
+  });
 });
 avatarPickerBtn.addEventListener('click', () => {
   avatarFileInput.click();

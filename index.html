@@ -32,10 +32,17 @@
       <label for="spyCountInput" class="label">Сколько шпионов</label>
       <input id="spyCountInput" type="number" min="1" max="4" value="1">
       <label for="spyModeInput" class="label">Режим шпионов</label>
-      <select id="spyModeInput">
-        <option value="blind">Вслепую (шпионы не знают друг друга)</option>
-        <option value="known">Сговор (шпионы знают друг друга)</option>
-      </select>
+      <div id="spyModeGrid" class="mode-grid">
+        <button type="button" class="mode-cell active" data-mode="blind">
+          <strong>Вслепую</strong>
+          <span>Шпионы не знают друг друга</span>
+        </button>
+        <button type="button" class="mode-cell" data-mode="known">
+          <strong>Сговор</strong>
+          <span>Шпионы знают друг друга</span>
+        </button>
+      </div>
+      <input id="spyModeInput" type="hidden" value="blind">
       <label for="categoryInput" class="label">Категория локаций</label>
       <select id="categoryInput">
         <option value="all">Все</option>
