@@ -989,6 +989,15 @@ function playFlipSound() {
   }).catch(() => {});
 }
 
+function triggerHaptic(pattern = 10) {
+  if (!navigator || typeof navigator.vibrate !== 'function') return;
+  try {
+    navigator.vibrate(pattern);
+  } catch (error) {
+    // noop
+  }
+}
+
 function buildRoundRevealToken(roomData) {
   const roundNumber = Number(roomData.roundNumber || 1);
   const startedAt = toMillis(roomData.startedAt);
@@ -1550,8 +1559,8 @@ function renderRoom() {
     roleCard.className = 'role-card';
     roleCard.textContent = 'Личные данные роли скрыты в игре.';
     roleHint.textContent = iAmEliminated
-      ? 'Ты в режиме ожидания. При необходимости открой карту кнопкой.'
-      : 'Если забыл роль, нажми "Показать карту".';
+      ? 'Ты в режиме ожидания. При необходимости нажми на карточку роли.'
+      : 'Если забыл роль, нажми на карточку или кнопку "Показать карту".';
 
     if (room.state === 'finished' && room.lastVoteResult === 'all_spies_found') {
       roundAlert.className = 'round-alert success';
@@ -2272,10 +2281,21 @@ if (gameCopyRoomBtn) {
   });
 }
 showRoleCardBtn.addEventListener('click', openRoleCardByClick);
+roleCard.addEventListener('click', openRoleCardByClick);
 if (roleRevealCard) {
   roleRevealCard.addEventListener('click', () => {
     if (roleRevealCard.classList.contains('masked')) {
       playFlipSound();
+      const room = state.roomData;
+      const iAmSpy = Boolean(
+        room && (
+          getSpyIdsFromRoom(room).includes(state.myId) ||
+          getSpyUidsFromRoom(room).includes(state.authUid)
+        )
+      );
+      if (iAmSpy) {
+        triggerHaptic([16, 24, 16]);
+      }
       setRoleRevealMasked(false);
     }
   });
@@ -2334,6 +2354,15 @@ chatInput.addEventListener('keydown', (event) => {
     event.preventDefault();
     sendChatMessage();
   }
+});
+
+document.addEventListener('click', (event) => {
+  const tapTarget = event.target.closest(
+    '.btn, .mode-cell, .copy-room-btn, .role-card, .quick-question-btn, .vote-btn, .like-btn, .role-reveal-card.masked'
+  );
+  if (!tapTarget) return;
+  const strongTap = tapTarget.classList.contains('btn-primary') || tapTarget.classList.contains('show-role-btn');
+  triggerHaptic(strongTap ? [12, 8] : 10);
 });
 
 window.addEventListener('beforeunload', () => {
