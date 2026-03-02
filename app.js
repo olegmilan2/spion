@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  deleteDoc,
   deleteField
 } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
@@ -930,7 +931,10 @@ function showGlobalStatus(message, type = 'muted') {
 
 function renderPlayers() {
   playersList.innerHTML = '';
-  if (state.players.length === 0) {
+  const showOnlyActive = !state.roomData || state.roomData.state === 'lobby';
+  const playersToRender = showOnlyActive ? state.players.filter(isPlayerActive) : state.players;
+
+  if (playersToRender.length === 0) {
     const li = document.createElement('li');
     li.className = 'player-item empty';
     li.textContent = 'Пока нет игроков';
@@ -938,7 +942,7 @@ function renderPlayers() {
     return;
   }
 
-  state.players.forEach((player) => {
+  playersToRender.forEach((player) => {
     const li = document.createElement('li');
     li.className = 'player-item';
     const status = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
@@ -1919,10 +1923,7 @@ async function leaveRoom() {
 
   if (state.db && state.roomCode) {
     try {
-      await updateDoc(playerRef(state.myId), {
-        connected: false,
-        lastSeenAt: serverTimestamp()
-      });
+      await deleteDoc(playerRef(state.myId));
     } catch (error) {
       // ignore disconnect errors
     }
