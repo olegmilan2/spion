@@ -162,7 +162,7 @@ function randomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-function pickLocation(category, difficulty) {
+function pickLocation(category, difficulty, previousLocationName = '') {
   const filtered = LOCATIONS.filter((item) => {
     const categoryOk = category === 'all' || item.category === category;
     const difficultyOk = difficulty === 'all' || item.difficulty === difficulty;
@@ -170,7 +170,11 @@ function pickLocation(category, difficulty) {
   });
 
   const pool = filtered.length > 0 ? filtered : LOCATIONS;
-  return randomItem(pool);
+  if (pool.length <= 1) return randomItem(pool);
+
+  const withoutPrevious = pool.filter((item) => item.name !== previousLocationName);
+  const finalPool = withoutPrevious.length > 0 ? withoutPrevious : pool;
+  return randomItem(finalPool);
 }
 
 function toMillis(value) {
@@ -456,7 +460,8 @@ async function startRound() {
   const spyPlayer = randomItem(eligiblePlayers);
   const roomCategory = state.roomData.locationCategory || 'all';
   const roomDifficulty = state.roomData.locationDifficulty || 'all';
-  const locationItem = pickLocation(roomCategory, roomDifficulty);
+  const previousLocation = state.roomData.location || '';
+  const locationItem = pickLocation(roomCategory, roomDifficulty, previousLocation);
   const location = locationItem.name;
 
   try {
