@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="Шпион">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.42)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.08)"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+  <circle cx="96" cy="96" r="58" fill="url(#glass)" stroke="rgba(255,255,255,0.32)" stroke-width="2"/>
+  <path d="M96 58c16 0 30 12 33 27l-16 5c-2-8-9-13-17-13-10 0-18 8-18 19 0 14 13 20 24 25 10 5 19 10 19 23 0 17-13 30-31 30-15 0-28-9-32-24l16-5c2 7 8 12 16 12 9 0 15-6 15-13 0-6-5-9-14-14-13-6-29-14-29-35 0-21 15-37 34-37Z" fill="#f59e0b"/>
+</svg>

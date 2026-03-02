@@ -1,5 +1,5 @@
 :root {
-  --bg: #f3efe4;
+  --bg: #0b1220;
   --card: #fffdf7;
   --text: #1a1a1a;
   --muted: #5c5a57;
@@ -18,7 +18,10 @@ body {
   min-height: 100vh;
   font-family: Manrope, sans-serif;
   color: var(--text);
-  background: radial-gradient(circle at 20% 20%, #fff4d6 0%, var(--bg) 45%), linear-gradient(180deg, #f8f4ea 0%, #ece6d7 100%);
+  background:
+    radial-gradient(circle at 14% 16%, rgba(30, 64, 175, 0.22) 0%, rgba(11, 18, 32, 0) 42%),
+    radial-gradient(circle at 86% 80%, rgba(15, 23, 42, 0.5) 0%, rgba(11, 18, 32, 0) 40%),
+    linear-gradient(180deg, #0f172a 0%, var(--bg) 56%, #030712 100%);
   overflow-x: hidden;
 }
 
@@ -32,19 +35,19 @@ body {
 .bg-shape-a {
   width: 240px;
   height: 240px;
-  background: #f59e0b;
-  top: -70px;
+  background: #1d4ed8;
+  top: -60px;
   right: -70px;
-  opacity: 0.25;
+  opacity: 0.2;
 }
 
 .bg-shape-b {
   width: 220px;
   height: 220px;
-  background: #0f766e;
+  background: #111827;
   bottom: -80px;
   left: -70px;
-  opacity: 0.2;
+  opacity: 0.38;
 }
 
 .layout {
@@ -283,6 +286,33 @@ select:focus {
   display: none;
 }
 
+.install-app-btn {
+  position: fixed;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 40;
+  border: 1px solid var(--accent-dark);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 28px rgba(194, 65, 12, 0.3);
+  cursor: pointer;
+}
+
+.install-app-btn:hover {
+  background: var(--accent-dark);
+}
+
+@media (display-mode: standalone) {
+  .install-app-btn {
+    display: none !important;
+  }
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -388,12 +418,15 @@ select:focus {
 
 .role-card {
   margin: 14px 0 10px;
-  border: 1px dashed var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 12px;
   padding: 16px;
   font-size: 20px;
   font-weight: 800;
-  background: #fffbf0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.56), rgba(255, 251, 240, 0.32));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 14px 34px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -703,13 +736,13 @@ select:focus {
 
 .role-reveal-card {
   width: min(520px, 100%);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 247, 237, 0.9));
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 247, 237, 0.68));
+  border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 24px 48px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
   transform-style: preserve-3d;
 }
 
@@ -771,6 +804,24 @@ select:focus {
 .role-reveal-title-safe {
   color: #0f766e;
 }
+
+.game-card:not(.hidden) .topbar,
+.game-card:not(.hidden) .role-card,
+.game-card:not(.hidden) .show-role-btn,
+.game-card:not(.hidden) .vote-panel,
+.game-card:not(.hidden) .quick-questions,
+.game-card:not(.hidden) .chat-panel,
+.game-card:not(.hidden) .actions {
+  animation: gadgetRise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.game-card:not(.hidden) .topbar { animation-delay: 20ms; }
+.game-card:not(.hidden) .role-card { animation-delay: 70ms; }
+.game-card:not(.hidden) .show-role-btn { animation-delay: 120ms; }
+.game-card:not(.hidden) .vote-panel { animation-delay: 150ms; }
+.game-card:not(.hidden) .quick-questions { animation-delay: 180ms; }
+.game-card:not(.hidden) .chat-panel { animation-delay: 210ms; }
+.game-card:not(.hidden) .actions { animation-delay: 240ms; }
 
 .players-list {
   list-style: none;
@@ -919,6 +970,29 @@ select:focus {
   }
   50% {
     box-shadow: 0 14px 30px rgba(194, 65, 12, 0.35);
+  }
+}
+
+@keyframes gadgetRise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card:not(.hidden) .topbar,
+  .game-card:not(.hidden) .role-card,
+  .game-card:not(.hidden) .show-role-btn,
+  .game-card:not(.hidden) .vote-panel,
+  .game-card:not(.hidden) .quick-questions,
+  .game-card:not(.hidden) .chat-panel,
+  .game-card:not(.hidden) .actions {
+    animation: none !important;
   }
 }
 
