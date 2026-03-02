@@ -1,11 +1,11 @@
-const CACHE_VERSION = 'spy-pwa-v4';
+const CACHE_VERSION = 'spy-pwa-v5';
 const APP_SCOPE = self.registration.scope;
 const INDEX_URL = new URL('index.html', APP_SCOPE).toString();
 const APP_SHELL = [
   './',
   'index.html',
   'style.css?v=20260302-2',
-  'app.js?v=20260303-1',
+  'app.js?v=20260303-2',
   'pwa.js?v=20260302-1',
   'firebase-config.js',
   'manifest.webmanifest',

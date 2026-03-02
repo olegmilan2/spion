@@ -2257,7 +2257,9 @@ async function ensureRoomAndJoin() {
       tx.set(room, {
         roomCode: state.roomCode,
         ownerId: state.myId,
+        ownerUid: state.authUid,
         lobbyStarterId: state.myId,
+        lobbyStarterUid: state.authUid,
         state: 'lobby',
         roundNumber: 1,
         expectedPlayers: state.expectedPlayers,
@@ -2281,15 +2283,32 @@ async function ensureRoomAndJoin() {
       const currentGameVariant = data.gameVariant || 'classic';
       const currentCategory = data.locationCategory || 'all';
       const currentDifficulty = data.locationDifficulty || 'all';
+      const isOwner = data.ownerId === state.myId || (data.ownerUid && data.ownerUid === state.authUid);
+      const isLobbyStarter = data.lobbyStarterId === state.myId || (data.lobbyStarterUid && data.lobbyStarterUid === state.authUid);
 
       if (!data.lobbyStarterId) {
         tx.update(room, {
-          lobbyStarterId: data.ownerId || state.myId
+          lobbyStarterId: data.ownerId || state.myId,
+          lobbyStarterUid: data.ownerUid || state.authUid
+        });
+      }
+
+      if (isOwner && data.ownerId !== state.myId) {
+        tx.update(room, {
+          ownerId: state.myId,
+          ownerUid: state.authUid
+        });
+      }
+
+      if (isLobbyStarter && data.lobbyStarterId !== state.myId) {
+        tx.update(room, {
+          lobbyStarterId: state.myId,
+          lobbyStarterUid: state.authUid
         });
       }
 
       if (
-        (data.ownerId === state.myId || data.lobbyStarterId === state.myId) &&
+        (isOwner || isLobbyStarter) &&
         (currentExpected !== state.expectedPlayers ||
           currentSpyCount !== state.spyCount ||
           currentSpyMode !== state.spyMode ||
