@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
@@ -29,7 +29,7 @@
       <input id="roomCodeInput" type="text" maxlength="20" placeholder="Например: 1234">
       <label for="expectedPlayersInput" class="label">Сколько игроков в раунде</label>
       <input id="expectedPlayersInput" type="number" min="3" max="20" value="3">
-      <label for="gameVariantInput" class="label">Вариант игры</label>
+      <p class="label">Вариант игры</p>
       <div id="gameVariantGrid" class="mode-grid">
         <button type="button" class="mode-cell active" data-variant="classic">
           <strong>Классика</strong>
@@ -41,7 +41,7 @@
         </button>
       </div>
       <input id="gameVariantInput" type="hidden" value="classic">
-      <label for="spyModeInput" class="label">Режим шпионов</label>
+      <p class="label">Режим шпионов</p>
       <div id="spyModeGrid" class="mode-grid">
         <button type="button" class="mode-cell active" data-mode="blind">
           <strong>Вслепую</strong>
@@ -53,7 +53,7 @@
         </button>
       </div>
       <input id="spyModeInput" type="hidden" value="blind">
-      <label for="spyCountInput" class="label">Сколько шпионов</label>
+      <p class="label">Сколько шпионов</p>
       <div id="spyCountGrid" class="mode-grid spy-count-grid">
         <button type="button" class="mode-cell spy-count-cell active" data-spy-count="1">
           <strong>1 шпион</strong>
@@ -65,7 +65,7 @@
         </button>
       </div>
       <input id="spyCountInput" type="hidden" value="1">
-      <label for="categoryInput" class="label">Категория локаций</label>
+      <p class="label">Категория локаций</p>
       <div id="categoryGrid" class="mode-grid category-grid">
         <button type="button" class="mode-cell category-cell active" data-category="all"><strong>🌍 Все</strong></button>
         <button type="button" class="mode-cell category-cell" data-category="general"><strong>🏙️ Общее</strong></button>
@@ -153,11 +153,11 @@
   </main>
 
   <div id="roleRevealModal" class="role-reveal hidden">
-    <div class="role-reveal-card">
+    <div id="roleRevealCard" class="role-reveal-card">
       <p class="eyebrow">Твоя карта</p>
       <h2 id="roleRevealTitle">Роль</h2>
       <p id="roleRevealText" class="lead"></p>
-      <button id="roleRevealBtn" class="btn btn-primary">Я запомнил</button>
+      <button id="roleRevealBtn" class="btn btn-primary role-reveal-cta">Я запомнил</button>
     </div>
   </div>
 

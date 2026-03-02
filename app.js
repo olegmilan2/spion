@@ -284,6 +284,7 @@ const showRoleCardBtn = document.getElementById('showRoleCardBtn');
 const newRoundBtn = document.getElementById('newRoundBtn');
 const leaveFromGameBtn = document.getElementById('leaveFromGameBtn');
 const roleRevealModal = document.getElementById('roleRevealModal');
+const roleRevealCard = document.getElementById('roleRevealCard');
 const roleRevealTitle = document.getElementById('roleRevealTitle');
 const roleRevealText = document.getElementById('roleRevealText');
 const roleRevealBtn = document.getElementById('roleRevealBtn');
@@ -570,6 +571,54 @@ function hideRoleReveal() {
   roleRevealModal.classList.add('hidden');
 }
 
+let flipAudioContext = null;
+
+function playFlipSound() {
+  const AudioCtxCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtxCtor) return;
+
+  if (!flipAudioContext) {
+    flipAudioContext = new AudioCtxCtor();
+  }
+  const ctx = flipAudioContext;
+
+  const ensureRunning = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
+  ensureRunning.then(() => {
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.42, now);
+    master.connect(ctx.destination);
+
+    const makeTick = (start, fromHz, toHz, peakGain) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(fromHz, start);
+      osc.frequency.exponentialRampToValueAtTime(toHz, start + 0.11);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1300, start);
+      filter.Q.setValueAtTime(0.8, start);
+
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(peakGain, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.115);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(master);
+
+      osc.start(start);
+      osc.stop(start + 0.13);
+    };
+
+    makeTick(now, 1100, 360, 0.48);
+    makeTick(now + 0.055, 860, 300, 0.32);
+  }).catch(() => {});
+}
+
 function buildRoundRevealToken(roomData) {
   const roundNumber = Number(roomData.roundNumber || 1);
   const startedAt = toMillis(roomData.startedAt);
@@ -609,6 +658,11 @@ function showRoleReveal(roomData, iAmSpy, iAmEliminated) {
   }
 
   roleRevealModal.classList.remove('hidden');
+  if (roleRevealCard) {
+    roleRevealCard.classList.remove('flip-in');
+    void roleRevealCard.offsetWidth;
+    roleRevealCard.classList.add('flip-in');
+  }
 }
 
 function showGlobalStatus(message, type = 'muted') {
@@ -620,7 +674,7 @@ function renderPlayers() {
   playersList.innerHTML = '';
   if (state.players.length === 0) {
     const li = document.createElement('li');
-    li.className = 'player-item';
+    li.className = 'player-item empty';
     li.textContent = 'Пока нет игроков';
     playersList.appendChild(li);
     return;
@@ -629,9 +683,40 @@ function renderPlayers() {
   state.players.forEach((player) => {
     const li = document.createElement('li');
     li.className = 'player-item';
-    const suffix = player.id === state.myId ? ' (ты)' : '';
     const status = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
-    li.textContent = `${player.name}${suffix} • ${status}`;
+
+    const avatar = document.createElement('span');
+    avatar.className = 'player-avatar';
+    if (player.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = player.avatarUrl;
+      img.alt = player.name || 'avatar';
+      img.addEventListener('error', () => {
+        avatar.textContent = getInitials(player.name);
+      });
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getInitials(player.name);
+    }
+
+    const main = document.createElement('div');
+    main.className = 'player-main';
+    const name = document.createElement('p');
+    name.className = 'player-name';
+    name.textContent = player.id === state.myId ? `${player.name} (ты)` : player.name;
+    const sub = document.createElement('p');
+    sub.className = 'player-sub';
+    sub.textContent = player.eliminated === true ? 'ожидание до нового раунда' : 'в игре';
+    main.appendChild(name);
+    main.appendChild(sub);
+
+    const badge = document.createElement('span');
+    badge.className = `player-badge${status === 'оффлайн' ? ' offline' : ''}`;
+    badge.textContent = status;
+
+    li.appendChild(avatar);
+    li.appendChild(main);
+    li.appendChild(badge);
     playersList.appendChild(li);
   });
 }
@@ -1598,6 +1683,7 @@ leaveRoomBtn.addEventListener('click', leaveRoom);
 leaveFromGameBtn.addEventListener('click', leaveRoom);
 showRoleCardBtn.addEventListener('click', () => {
   if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) return;
+  playFlipSound();
   const me = state.players.find((player) => player.id === state.myId);
   const iAmEliminated = me?.eliminated === true;
   const iAmSpy = getSpyIdsFromRoom(state.roomData).includes(state.myId) || getSpyUidsFromRoom(state.roomData).includes(state.authUid);
