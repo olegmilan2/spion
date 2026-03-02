@@ -544,6 +544,64 @@ select:focus {
   flex: 1;
 }
 
+.quick-questions {
+  margin: 10px 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 247, 237, 0.76));
+  box-shadow: 0 8px 18px rgba(30, 41, 59, 0.08);
+  overflow: hidden;
+}
+
+.quick-questions summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 12px;
+  font-weight: 800;
+  user-select: none;
+}
+
+.quick-questions summary::-webkit-details-marker {
+  display: none;
+}
+
+.quick-questions summary::after {
+  content: '▼';
+  float: right;
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform 120ms ease;
+}
+
+.quick-questions[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.quick-questions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.quick-question-btn {
+  border: 1px solid #fdba74;
+  background: #fff7ed;
+  color: #7c2d12;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 100ms ease, background-color 100ms ease;
+}
+
+.quick-question-btn:hover {
+  transform: translateY(-1px);
+  background: #ffedd5;
+}
+
 .role-reveal {
   position: fixed;
   inset: 0;

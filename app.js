@@ -288,13 +288,117 @@ const CATEGORY_ROLE_POOL = {
   ]
 };
 
+const KEYWORD_ROLE_POOL = [
+  {
+    keys: ['парикмахер', 'салон красоты', 'маникюр'],
+    roles: ['Парикмах', 'Барбер', 'Колорист', 'Стилист', 'Мастер маникюра', 'Администратор салона', 'Клиент салона', 'Визажист']
+  },
+  {
+    keys: ['больниц', 'палат', 'врач', 'регистратур'],
+    roles: ['Хирург', 'Терапевт', 'Медсестра', 'Пациент', 'Фельдшер', 'Рентгенолог', 'Регистратор', 'Санитар']
+  },
+  {
+    keys: ['банк', 'банкомат'],
+    roles: ['Кассир', 'Кредитный менеджер', 'Клиент', 'Охранник банка', 'Оператор', 'Инкассатор', 'Консультант', 'Руководитель отделения']
+  },
+  {
+    keys: ['школ', 'класс', 'университет', 'кабинет'],
+    roles: ['Учитель', 'Ученик', 'Директор', 'Завуч', 'Лаборант', 'Библиотекарь', 'Куратор', 'Психолог']
+  },
+  {
+    keys: ['кино', 'сцена', 'кулис', 'театр'],
+    roles: ['Актер', 'Режиссер', 'Киномеханик', 'Кассир', 'Контролер билетов', 'Гример', 'Осветитель', 'Зритель']
+  },
+  {
+    keys: ['ресторан', 'пиццер', 'пельмен', 'кофейн', 'столов'],
+    roles: ['Шеф-повар', 'Официант', 'Бариста', 'Кассир', 'Администратор зала', 'Хостес', 'Гость', 'Кондитер']
+  },
+  {
+    keys: ['аэропорт', 'вокзал', 'отел', 'пляж', 'порт'],
+    roles: ['Пилот', 'Бортпроводник', 'Диспетчер', 'Пассажир', 'Портье', 'Консьерж', 'Сотрудник досмотра', 'Гид']
+  }
+];
+
+const GENERATED_LOCATION_CONFIG = {
+  general: { roots: ['площадка', 'квартал', 'павильон', 'зал', 'комплекс', 'центр', 'коридор', 'холл', 'двор', 'переход'], themes: ['городской', 'районный', 'общественный', 'центральный', 'локальный', 'открытый', 'закрытый', 'семейный', 'дежурный', 'рабочий'] },
+  cinema: { roots: ['павильон', 'монтажная', 'кинозал', 'гримерка', 'съемочная зона', 'просмотровая', 'декорация', 'звукостудия', 'постпродакшн-цех', 'кастинг-комната'], themes: ['камерный', 'драматический', 'комедийный', 'документальный', 'фестивальный', 'ночной', 'утренний', 'пилотный', 'архивный', 'экспериментальный'] },
+  sport: { roots: ['арена', 'тренировочный зал', 'манеж', 'корт', 'стадион-сектор', 'раздевалка', 'трибуна', 'спортбаза', 'восстановительный блок', 'комментаторская'], themes: ['соревновательный', 'разминочный', 'профессиональный', 'любительский', 'молодежный', 'сборный', 'утренний', 'вечерний', 'интенсивный', 'контрольный'] },
+  travel: { roots: ['терминал', 'гейт', 'платформа', 'перрон', 'портовая зона', 'стойка регистрации', 'транзитный коридор', 'круизный отсек', 'зал ожидания', 'таможенный блок'], themes: ['международный', 'внутренний', 'транзитный', 'туристический', 'пригородный', 'экспресс', 'ночной', 'семейный', 'курортный', 'дальний'] },
+  work: { roots: ['офис-блок', 'переговорная', 'цех', 'лаборатория', 'складской модуль', 'редакционная', 'диспетчерская', 'ресепшен', 'операционная зона', 'серверная'], themes: ['проектный', 'операционный', 'дежурный', 'исследовательский', 'сервисный', 'производственный', 'логистический', 'контрольный', 'административный', 'креативный'] },
+  history: { roots: ['архивный зал', 'экспозиция', 'раскопочный сектор', 'музейный коридор', 'крепостной двор', 'хранилище', 'читальный стол', 'исторический павильон', 'галерея эпох', 'лекционный зал'], themes: ['античный', 'средневековый', 'имперский', 'архивный', 'реконструкторский', 'летописный', 'музейный', 'экспедиционный', 'династический', 'хронологический'] },
+  tech: { roots: ['серверный отсек', 'роболаб', 'дрон-полигон', 'VR-зона', 'чип-участок', 'прототипная', 'тестовая линия', 'инженерный хаб', 'кибер-арена', 'ИИ-блок'], themes: ['квантовый', 'прототипный', 'автоматизированный', 'цифровой', 'экспериментальный', 'инженерный', 'исследовательский', 'пилотный', 'нагрузочный', 'облачный'] },
+  crime: { roots: ['комната допроса', 'кабинет следствия', 'архив улик', 'судебный сектор', 'оперативный штаб', 'кримлаборатория', 'конвойный коридор', 'протокольная', 'наблюдательный пост', 'периметр'], themes: ['оперативный', 'процессуальный', 'секретный', 'контрольный', 'дежурный', 'экспертный', 'расследовательский', 'протокольный', 'ночной', 'усиленный'] },
+  extreme: { roots: ['склон', 'маршрут', 'лагерь', 'тросовая точка', 'рафтинг-станция', 'серф-пост', 'скальная стенка', 'пещерный вход', 'штормовой сектор', 'экспедиционный базис'], themes: ['высотный', 'скоростной', 'штормовой', 'ледовый', 'горный', 'лавинный', 'скальный', 'водный', 'погодный', 'экстремальный'] },
+  vip: { roots: ['лаунж', 'приватный зал', 'пентхаус-зона', 'аукционный кабинет', 'винный салон', 'бутик-галерея', 'гольф-павильон', 'яхтенный салон', 'закрытый показ', 'премиум-резиденция'], themes: ['приватный', 'премиальный', 'клубный', 'закрытый', 'люксовый', 'элитный', 'персональный', 'камерный', 'статусный', 'эксклюзивный'] }
+};
+
+const GENERATED_ROLE_CONFIG = {
+  general: { prefixes: ['Старший', 'Младший', 'Дежурный', 'Главный', 'Ведущий', 'Полевой', 'Линейный', 'Районный', 'Сменный', 'Оперативный'], bases: ['администратор', 'координатор', 'инспектор', 'консультант', 'организатор', 'оператор', 'сотрудник зала', 'логист', 'регистратор', 'помощник'] },
+  cinema: { prefixes: ['Старший', 'Площадочный', 'Студийный', 'Постановочный', 'Монтажный', 'Фестивальный', 'Дежурный', 'Ночной', 'Архивный', 'Ведущий'], bases: ['режиссер', 'оператор', 'монтажер', 'звукорежиссер', 'гример', 'костюмер', 'реквизитор', 'кастинг-менеджер', 'киномеханик', 'ассистент продюсера'] },
+  sport: { prefixes: ['Главный', 'Ассистент', 'Сменный', 'Полевой', 'Матчевый', 'Разминочный', 'Сборный', 'Контрольный', 'Восстановительный', 'Дежурный'], bases: ['тренер', 'судья', 'игрок', 'комментатор', 'массажист', 'реабилитолог', 'инструктор', 'аналитик матча', 'менеджер команды', 'стюард арены'] },
+  travel: { prefixes: ['Старший', 'Бортовой', 'Транзитный', 'Портовый', 'Терминальный', 'Рейсовый', 'Курортный', 'Пограничный', 'Ночной', 'Дежурный'], bases: ['пилот', 'бортпроводник', 'диспетчер', 'гид', 'консьерж', 'регистратор рейса', 'агент стойки', 'сотрудник досмотра', 'логист багажа', 'координатор маршрута'] },
+  work: { prefixes: ['Ведущий', 'Старший', 'Операционный', 'Проектный', 'Производственный', 'Логистический', 'Дежурный', 'Сервисный', 'Контрольный', 'Технический'], bases: ['менеджер', 'аналитик', 'инженер', 'оператор', 'редактор', 'бухгалтер', 'HR-специалист', 'координатор смены', 'контролер качества', 'системный администратор'] },
+  history: { prefixes: ['Старший', 'Архивный', 'Музейный', 'Экспедиционный', 'Реконструкторский', 'Лекторский', 'Фондовый', 'Хронологический', 'Научный', 'Полевой'], bases: ['историк', 'археолог', 'архивариус', 'куратор', 'реставратор', 'экскурсовод', 'палеограф', 'хранитель фонда', 'специалист манускриптов', 'исследователь эпох'] },
+  tech: { prefixes: ['Старший', 'Системный', 'Нагрузочный', 'Пилотный', 'Лабораторный', 'Облачный', 'Квантовый', 'Автоматизационный', 'Дежурный', 'Интеграционный'], bases: ['разработчик', 'тестировщик', 'инженер', 'аналитик данных', 'ML-специалист', 'оператор дронов', 'администратор кластера', 'DevOps-инженер', 'робототехник', 'продакт-менеджер'] },
+  crime: { prefixes: ['Старший', 'Оперативный', 'Следственный', 'Экспертный', 'Процессуальный', 'Секретный', 'Контрольный', 'Протокольный', 'Дежурный', 'Ночной'], bases: ['следователь', 'криминалист', 'детектив', 'эксперт улик', 'оперативник', 'прокурор', 'адвокат', 'судебный секретарь', 'пристав', 'аналитик расследований'] },
+  extreme: { prefixes: ['Старший', 'Высотный', 'Ледовый', 'Штормовой', 'Экспедиционный', 'Маршрутный', 'Дежурный', 'Спасательный', 'Горный', 'Полевой'], bases: ['инструктор', 'гид', 'альпинист', 'спелеолог', 'спасатель', 'техник снаряжения', 'штурман', 'парашютист', 'рафтинг-координатор', 'метеонаблюдатель'] },
+  vip: { prefixes: ['Персональный', 'Приватный', 'Элитный', 'Премиальный', 'Клубный', 'Закрытый', 'Личный', 'Статусный', 'Ведущий', 'Старший'], bases: ['ассистент', 'консьерж', 'сомелье', 'аукционист', 'куратор коллекции', 'ивент-менеджер', 'стилист', 'водитель', 'PR-агент', 'менеджер VIP-зоны'] }
+};
+
+function buildGeneratedLocations() {
+  const result = [];
+  Object.entries(GENERATED_LOCATION_CONFIG).forEach(([category, config]) => {
+    const names = [];
+    config.themes.forEach((theme) => {
+      config.roots.forEach((root) => {
+        names.push(`${theme} ${root}`);
+      });
+    });
+    names.slice(0, 100).forEach((name, index) => {
+      const difficulty = index % 3 === 0 ? 'easy' : index % 3 === 1 ? 'medium' : 'hard';
+      result.push({ name, category, difficulty });
+    });
+  });
+  return result;
+}
+
+function buildGeneratedRolesByCategory() {
+  const result = {};
+  Object.entries(GENERATED_ROLE_CONFIG).forEach(([category, config]) => {
+    const roles = [];
+    config.prefixes.forEach((prefix) => {
+      config.bases.forEach((base) => {
+        roles.push(`${prefix} ${base}`);
+      });
+    });
+    result[category] = roles.slice(0, 100);
+  });
+  return result;
+}
+
+function appendUnique(target, items) {
+  const seen = new Set(target);
+  items.forEach((item) => {
+    if (!seen.has(item)) {
+      seen.add(item);
+      target.push(item);
+    }
+  });
+}
+
 LOCATIONS.push(
   ...EASY_GENERAL_WORDS.map((name) => ({
     name,
     category: 'general',
     difficulty: 'easy'
-  }))
+  })),
+  ...buildGeneratedLocations()
 );
+
+const generatedRolesByCategory = buildGeneratedRolesByCategory();
+Object.keys(CATEGORY_ROLE_POOL).forEach((category) => {
+  appendUnique(CATEGORY_ROLE_POOL[category], generatedRolesByCategory[category] || []);
+});
 
 const LOCAL_MY_ID_KEY = 'spy_my_id';
 const LOCAL_NAME_KEY = 'spy_player_name';
@@ -353,6 +457,8 @@ const chatPanel = document.getElementById('chatPanel');
 const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const chatSendBtn = document.getElementById('chatSendBtn');
+const quickQuestions = document.getElementById('quickQuestions');
+const quickQuestionsList = document.getElementById('quickQuestionsList');
 const gameStatus = document.getElementById('gameStatus');
 const showRoleCardBtn = document.getElementById('showRoleCardBtn');
 const newRoundBtn = document.getElementById('newRoundBtn');
@@ -391,6 +497,19 @@ const state = {
   lastRevealToken: '',
   recoveringRoom: false
 };
+
+const QUICK_QUESTIONS = [
+  'Что здесь обычно делают в первую очередь?',
+  'Какое здесь самое шумное место?',
+  'Что здесь считается нормой поведения?',
+  'Без чего тут сложно обойтись?',
+  'Кто здесь главный по процессу?',
+  'Когда тут больше всего людей?',
+  'Что здесь может пойти не так?',
+  'Какая тут самая частая причина споров?',
+  'Что тут обычно ждут дольше всего?',
+  'Что здесь было бы совсем неуместно?'
+];
 
 localStorage.setItem(LOCAL_MY_ID_KEY, state.myId);
 
@@ -515,8 +634,18 @@ function getCategoryRolePool(category) {
   return GENERIC_CIVILIAN_ROLES;
 }
 
-function pickCivilianRoles(players, locationCategory) {
-  const pool = [...getCategoryRolePool(locationCategory)];
+function getRolePoolForLocation(locationName, locationCategory) {
+  const lowerName = String(locationName || '').toLowerCase();
+  for (const entry of KEYWORD_ROLE_POOL) {
+    if (entry.keys.some((key) => lowerName.includes(key))) {
+      return entry.roles;
+    }
+  }
+  return getCategoryRolePool(locationCategory);
+}
+
+function pickCivilianRoles(players, locationName, locationCategory) {
+  const pool = [...getRolePoolForLocation(locationName, locationCategory)];
   const shuffledPlayers = pickDistinct(players, players.length);
   const rolesByPlayer = {};
 
@@ -1093,6 +1222,22 @@ function renderChat() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+function renderQuickQuestions() {
+  if (!quickQuestions || !quickQuestionsList) return;
+  quickQuestionsList.innerHTML = '';
+  QUICK_QUESTIONS.forEach((question) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quick-question-btn';
+    btn.textContent = question;
+    btn.addEventListener('click', () => {
+      chatInput.value = question;
+      chatInput.focus();
+    });
+    quickQuestionsList.appendChild(btn);
+  });
+}
+
 async function sendChatMessage() {
   const text = chatInput.value.trim();
   if (!text) return;
@@ -1182,6 +1327,10 @@ function renderRoom() {
       gameStatus.textContent = 'Раунд синхронизирован. Все игроки получили роли.';
       renderVotePanel();
     }
+    if (quickQuestions) {
+      quickQuestions.classList.toggle('hidden', iAmEliminated);
+    }
+    renderQuickQuestions();
     renderChat();
   } else {
     setVisible('lobby');
@@ -1189,6 +1338,7 @@ function renderRoom() {
     roundAlert.className = 'round-alert hidden';
     roundAlert.textContent = '';
     votePanel.classList.add('hidden');
+    if (quickQuestions) quickQuestions.classList.add('hidden');
     chatPanel.classList.add('hidden');
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
@@ -1574,7 +1724,9 @@ async function startRound() {
       }
 
       const { picked, updatedHistory } = pickLocationForRoom(data);
-      const civilianRoles = gameVariant === 'classic_roles' ? pickCivilianRoles(civilianPlayers, picked.category) : {};
+      const civilianRoles = gameVariant === 'classic_roles'
+        ? pickCivilianRoles(civilianPlayers, picked.name, picked.category)
+        : {};
 
       tx.update(room, {
         state: 'started',
@@ -1692,7 +1844,9 @@ async function resetRound() {
       const data = snap.data();
       const nextRound = (data.roundNumber || 1) + 1;
       const { picked, updatedHistory } = pickLocationForRoom(data);
-      const civilianRoles = gameVariant === 'classic_roles' ? pickCivilianRoles(civilianPlayers, picked.category) : {};
+      const civilianRoles = gameVariant === 'classic_roles'
+        ? pickCivilianRoles(civilianPlayers, picked.name, picked.category)
+        : {};
 
       tx.update(room, {
         state: 'started',
