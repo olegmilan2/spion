@@ -16,20 +16,31 @@ import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/1
 
 const LOCATIONS = [
   { name: 'Кинотеатр', category: 'cinema', difficulty: 'easy' },
-  { name: 'Съемочная площадка', category: 'cinema', difficulty: 'medium' },
+  { name: 'Кинокасса', category: 'cinema', difficulty: 'easy' },
+  { name: 'Буфет киноцентра', category: 'cinema', difficulty: 'easy' },
+  { name: 'Съемочная площадка', category: 'cinema', difficulty: 'easy' },
   { name: 'Кинопавильон', category: 'cinema', difficulty: 'medium' },
+  { name: 'Гримерный вагон', category: 'cinema', difficulty: 'medium' },
+  { name: 'Монтажная студия', category: 'cinema', difficulty: 'medium' },
+  { name: 'Фоли-студия', category: 'cinema', difficulty: 'medium' },
   { name: 'Постпродакшн студия', category: 'cinema', difficulty: 'hard' },
   { name: 'Кастинг-агентство', category: 'cinema', difficulty: 'hard' },
+  { name: 'Павильон хромакея', category: 'cinema', difficulty: 'hard' },
   { name: 'Фестиваль короткометражек', category: 'cinema', difficulty: 'hard' },
+
   { name: 'Стадион', category: 'sport', difficulty: 'easy' },
   { name: 'Фитнес-клуб', category: 'sport', difficulty: 'easy' },
   { name: 'Бассейн', category: 'sport', difficulty: 'easy' },
+  { name: 'Теннисный корт', category: 'sport', difficulty: 'easy' },
   { name: 'Ледовая арена', category: 'sport', difficulty: 'medium' },
   { name: 'Скалодром', category: 'sport', difficulty: 'medium' },
   { name: 'Велотрек', category: 'sport', difficulty: 'medium' },
+  { name: 'Боксерский зал', category: 'sport', difficulty: 'medium' },
   { name: 'Центр подготовки олимпийцев', category: 'sport', difficulty: 'hard' },
   { name: 'Комментаторская кабина', category: 'sport', difficulty: 'hard' },
   { name: 'Спортивный допинг-контроль', category: 'sport', difficulty: 'hard' },
+  { name: 'База биатлонной сборной', category: 'sport', difficulty: 'hard' },
+
   { name: 'Ресторан', category: 'general', difficulty: 'easy' },
   { name: 'Супермаркет', category: 'general', difficulty: 'easy' },
   { name: 'Банк', category: 'general', difficulty: 'easy' },
@@ -39,59 +50,100 @@ const LOCATIONS = [
   { name: 'Музей', category: 'general', difficulty: 'medium' },
   { name: 'Театр', category: 'general', difficulty: 'medium' },
   { name: 'Суд', category: 'general', difficulty: 'medium' },
-  { name: 'Полицейский участок', category: 'general', difficulty: 'medium' },
-  { name: 'Похоронное бюро', category: 'general', difficulty: 'hard' },
+  { name: 'Почтовый центр', category: 'general', difficulty: 'medium' },
   { name: 'Реставрационная мастерская музея', category: 'general', difficulty: 'hard' },
   { name: 'Хранилище архива', category: 'general', difficulty: 'hard' },
+
   { name: 'Аэропорт', category: 'travel', difficulty: 'easy' },
   { name: 'Вокзал', category: 'travel', difficulty: 'easy' },
   { name: 'Отель', category: 'travel', difficulty: 'easy' },
   { name: 'Пляж', category: 'travel', difficulty: 'easy' },
+  { name: 'Кемпинг', category: 'travel', difficulty: 'easy' },
   { name: 'Круизный лайнер', category: 'travel', difficulty: 'medium' },
+  { name: 'Горнолыжный курорт', category: 'travel', difficulty: 'medium' },
+  { name: 'Портовый терминал', category: 'travel', difficulty: 'medium' },
+  { name: 'Транзитная зона аэропорта', category: 'travel', difficulty: 'medium' },
   { name: 'Подводная лодка', category: 'travel', difficulty: 'hard' },
   { name: 'Космическая станция', category: 'travel', difficulty: 'hard' },
   { name: 'Пограничный пункт', category: 'travel', difficulty: 'hard' },
-  { name: 'Транзитная зона аэропорта', category: 'travel', difficulty: 'hard' },
+
   { name: 'Офис', category: 'work', difficulty: 'easy' },
   { name: 'Колл-центр', category: 'work', difficulty: 'easy' },
   { name: 'Коворкинг', category: 'work', difficulty: 'easy' },
-  { name: 'Склад', category: 'work', difficulty: 'medium' },
+  { name: 'Склад', category: 'work', difficulty: 'easy' },
+  { name: 'Редакция новостей', category: 'work', difficulty: 'easy' },
   { name: 'Заводской цех', category: 'work', difficulty: 'medium' },
   { name: 'Лаборатория', category: 'work', difficulty: 'medium' },
+  { name: 'Логистический хаб', category: 'work', difficulty: 'medium' },
+  { name: 'Строительная площадка', category: 'work', difficulty: 'medium' },
   { name: 'Аудиторская проверка', category: 'work', difficulty: 'hard' },
   { name: 'Дата-центр', category: 'work', difficulty: 'hard' },
   { name: 'Центр управления полетами', category: 'work', difficulty: 'hard' },
-  { name: 'Военная база', category: 'work', difficulty: 'hard' },
+
   { name: 'Исторический музей', category: 'history', difficulty: 'easy' },
+  { name: 'Краеведческий зал', category: 'history', difficulty: 'easy' },
+  { name: 'Архив библиотеки', category: 'history', difficulty: 'easy' },
+  { name: 'Экскурсия по крепости', category: 'history', difficulty: 'easy' },
   { name: 'Археологические раскопки', category: 'history', difficulty: 'medium' },
   { name: 'Средневековый замок', category: 'history', difficulty: 'medium' },
+  { name: 'Античный амфитеатр', category: 'history', difficulty: 'medium' },
+  { name: 'Зал древних рукописей', category: 'history', difficulty: 'medium' },
   { name: 'Военно-исторический архив', category: 'history', difficulty: 'hard' },
   { name: 'Реконструкция древней битвы', category: 'history', difficulty: 'hard' },
   { name: 'Музей эпохи Возрождения', category: 'history', difficulty: 'hard' },
+  { name: 'Секретное хранилище манускриптов', category: 'history', difficulty: 'hard' },
+
   { name: 'IT-офис', category: 'tech', difficulty: 'easy' },
   { name: 'Сервисный центр смартфонов', category: 'tech', difficulty: 'easy' },
+  { name: 'Магазин электроники', category: 'tech', difficulty: 'easy' },
+  { name: 'Клуб VR-игр', category: 'tech', difficulty: 'easy' },
   { name: 'Киберспортивная арена', category: 'tech', difficulty: 'medium' },
   { name: 'Робототехническая лаборатория', category: 'tech', difficulty: 'medium' },
+  { name: 'Студия разработки игр', category: 'tech', difficulty: 'medium' },
+  { name: 'Центр тестирования дронов', category: 'tech', difficulty: 'medium' },
   { name: 'Центр ИИ-исследований', category: 'tech', difficulty: 'hard' },
   { name: 'Квантовая лаборатория', category: 'tech', difficulty: 'hard' },
-  { name: 'Полицейский участок', category: 'crime', difficulty: 'easy' },
+  { name: 'Серверный бункер', category: 'tech', difficulty: 'hard' },
+  { name: 'Чип-фабрика', category: 'tech', difficulty: 'hard' },
+
+  { name: 'Патрульный участок', category: 'crime', difficulty: 'easy' },
+  { name: 'Камера временного содержания', category: 'crime', difficulty: 'easy' },
+  { name: 'Адвокатское бюро', category: 'crime', difficulty: 'easy' },
+  { name: 'Комната допроса', category: 'crime', difficulty: 'easy' },
   { name: 'Судебный зал', category: 'crime', difficulty: 'medium' },
   { name: 'Тюрьма', category: 'crime', difficulty: 'medium' },
+  { name: 'Баллистическая экспертиза', category: 'crime', difficulty: 'medium' },
+  { name: 'Управление расследований', category: 'crime', difficulty: 'medium' },
   { name: 'Криминалистическая лаборатория', category: 'crime', difficulty: 'hard' },
   { name: 'Подпольное казино', category: 'crime', difficulty: 'hard' },
   { name: 'Секретный склад улик', category: 'crime', difficulty: 'hard' },
+  { name: 'Точка прослушки', category: 'crime', difficulty: 'hard' },
+
   { name: 'Картинг', category: 'extreme', difficulty: 'easy' },
   { name: 'Веревочный парк', category: 'extreme', difficulty: 'easy' },
+  { name: 'Серф-станция', category: 'extreme', difficulty: 'easy' },
+  { name: 'Пейнтбольный полигон', category: 'extreme', difficulty: 'easy' },
   { name: 'Рафтинг-база', category: 'extreme', difficulty: 'medium' },
   { name: 'Парашютный аэродром', category: 'extreme', difficulty: 'medium' },
+  { name: 'Каньон для хайкинга', category: 'extreme', difficulty: 'medium' },
+  { name: 'Альпинистский лагерь', category: 'extreme', difficulty: 'medium' },
   { name: 'Бейсджампинг-точка', category: 'extreme', difficulty: 'hard' },
   { name: 'Штормовой яхт-клуб', category: 'extreme', difficulty: 'hard' },
+  { name: 'Пещера спелеологов', category: 'extreme', difficulty: 'hard' },
+  { name: 'Ледник экспедиции', category: 'extreme', difficulty: 'hard' },
+
   { name: 'Пятизвездочный отель', category: 'vip', difficulty: 'easy' },
   { name: 'Премиум-спа', category: 'vip', difficulty: 'easy' },
+  { name: 'Бутик-галерея', category: 'vip', difficulty: 'easy' },
+  { name: 'Личный шопинг-зал', category: 'vip', difficulty: 'easy' },
   { name: 'Лаунж в бизнес-терминале', category: 'vip', difficulty: 'medium' },
+  { name: 'Закрытый яхт-клуб', category: 'vip', difficulty: 'medium' },
+  { name: 'Личный винный погреб', category: 'vip', difficulty: 'medium' },
+  { name: 'Бутик-отель на острове', category: 'vip', difficulty: 'medium' },
   { name: 'Приватный аукцион', category: 'vip', difficulty: 'hard' },
   { name: 'Закрытый гольф-клуб', category: 'vip', difficulty: 'hard' },
-  { name: 'Пентхаус-вечеринка', category: 'vip', difficulty: 'hard' }
+  { name: 'Пентхаус-вечеринка', category: 'vip', difficulty: 'hard' },
+  { name: 'Закулисье люкс-показа', category: 'vip', difficulty: 'hard' }
 ];
 
 const LOCAL_MY_ID_KEY = 'spy_my_id';
@@ -167,19 +219,48 @@ function randomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-function pickLocation(category, difficulty, previousLocationName = '') {
+function getLocationPool(category, difficulty) {
   const filtered = LOCATIONS.filter((item) => {
     const categoryOk = category === 'all' || item.category === category;
     const difficultyOk = difficulty === 'all' || item.difficulty === difficulty;
     return categoryOk && difficultyOk;
   });
 
-  const pool = filtered.length > 0 ? filtered : LOCATIONS;
-  if (pool.length <= 1) return randomItem(pool);
+  return filtered.length > 0 ? filtered : LOCATIONS;
+}
 
-  const withoutPrevious = pool.filter((item) => item.name !== previousLocationName);
-  const finalPool = withoutPrevious.length > 0 ? withoutPrevious : pool;
-  return randomItem(finalPool);
+function getHistoryKey(category, difficulty) {
+  return `${category}__${difficulty}`;
+}
+
+function pickLocationForRoom(roomData) {
+  const category = roomData.locationCategory || 'all';
+  const difficulty = roomData.locationDifficulty || 'all';
+  const historyKey = getHistoryKey(category, difficulty);
+  const historyMap = roomData.locationHistory && typeof roomData.locationHistory === 'object'
+    ? roomData.locationHistory
+    : {};
+
+  const pool = getLocationPool(category, difficulty);
+  const used = Array.isArray(historyMap[historyKey]) ? historyMap[historyKey] : [];
+  let available = pool.filter((item) => !used.includes(item.name));
+  let nextUsed = used;
+
+  if (available.length === 0) {
+    available = pool;
+    nextUsed = [];
+  }
+
+  const picked = randomItem(available);
+  const updatedHistory = {
+    ...historyMap,
+    [historyKey]: [...nextUsed, picked.name]
+  };
+
+  return {
+    picked,
+    updatedHistory
+  };
 }
 
 function toMillis(value) {
@@ -496,6 +577,7 @@ async function ensureRoomAndJoin() {
         expectedPlayers: state.expectedPlayers,
         locationCategory: state.locationCategory,
         locationDifficulty: state.locationDifficulty,
+        locationHistory: {},
         createdByUid: state.authUid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -625,11 +707,6 @@ async function startRound() {
   }
 
   const spyPlayer = randomItem(eligiblePlayers);
-  const roomCategory = state.roomData.locationCategory || 'all';
-  const roomDifficulty = state.roomData.locationDifficulty || 'all';
-  const previousLocation = state.roomData.location || '';
-  const locationItem = pickLocation(roomCategory, roomDifficulty, previousLocation);
-  const location = locationItem.name;
 
   try {
     await runTransaction(state.db, async (tx) => {
@@ -645,13 +722,16 @@ async function startRound() {
         throw new Error('Раунд уже запущен другим игроком');
       }
 
+      const { picked, updatedHistory } = pickLocationForRoom(data);
+
       tx.update(room, {
         state: 'started',
         spyId: spyPlayer.id,
         spyUid: spyPlayer.uid || '',
-        location,
-        locationCategory: roomCategory,
-        locationDifficulty: roomDifficulty,
+        location: picked.name,
+        locationCategory: data.locationCategory || 'all',
+        locationDifficulty: data.locationDifficulty || 'all',
+        locationHistory: updatedHistory,
         eliminatedPlayerId: deleteField(),
         eliminatedPlayerName: deleteField(),
         eliminatedRound: deleteField(),
