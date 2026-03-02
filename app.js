@@ -61,7 +61,37 @@ const LOCATIONS = [
   { name: 'Аудиторская проверка', category: 'work', difficulty: 'hard' },
   { name: 'Дата-центр', category: 'work', difficulty: 'hard' },
   { name: 'Центр управления полетами', category: 'work', difficulty: 'hard' },
-  { name: 'Военная база', category: 'work', difficulty: 'hard' }
+  { name: 'Военная база', category: 'work', difficulty: 'hard' },
+  { name: 'Исторический музей', category: 'history', difficulty: 'easy' },
+  { name: 'Археологические раскопки', category: 'history', difficulty: 'medium' },
+  { name: 'Средневековый замок', category: 'history', difficulty: 'medium' },
+  { name: 'Военно-исторический архив', category: 'history', difficulty: 'hard' },
+  { name: 'Реконструкция древней битвы', category: 'history', difficulty: 'hard' },
+  { name: 'Музей эпохи Возрождения', category: 'history', difficulty: 'hard' },
+  { name: 'IT-офис', category: 'tech', difficulty: 'easy' },
+  { name: 'Сервисный центр смартфонов', category: 'tech', difficulty: 'easy' },
+  { name: 'Киберспортивная арена', category: 'tech', difficulty: 'medium' },
+  { name: 'Робототехническая лаборатория', category: 'tech', difficulty: 'medium' },
+  { name: 'Центр ИИ-исследований', category: 'tech', difficulty: 'hard' },
+  { name: 'Квантовая лаборатория', category: 'tech', difficulty: 'hard' },
+  { name: 'Полицейский участок', category: 'crime', difficulty: 'easy' },
+  { name: 'Судебный зал', category: 'crime', difficulty: 'medium' },
+  { name: 'Тюрьма', category: 'crime', difficulty: 'medium' },
+  { name: 'Криминалистическая лаборатория', category: 'crime', difficulty: 'hard' },
+  { name: 'Подпольное казино', category: 'crime', difficulty: 'hard' },
+  { name: 'Секретный склад улик', category: 'crime', difficulty: 'hard' },
+  { name: 'Картинг', category: 'extreme', difficulty: 'easy' },
+  { name: 'Веревочный парк', category: 'extreme', difficulty: 'easy' },
+  { name: 'Рафтинг-база', category: 'extreme', difficulty: 'medium' },
+  { name: 'Парашютный аэродром', category: 'extreme', difficulty: 'medium' },
+  { name: 'Бейсджампинг-точка', category: 'extreme', difficulty: 'hard' },
+  { name: 'Штормовой яхт-клуб', category: 'extreme', difficulty: 'hard' },
+  { name: 'Пятизвездочный отель', category: 'vip', difficulty: 'easy' },
+  { name: 'Премиум-спа', category: 'vip', difficulty: 'easy' },
+  { name: 'Лаунж в бизнес-терминале', category: 'vip', difficulty: 'medium' },
+  { name: 'Приватный аукцион', category: 'vip', difficulty: 'hard' },
+  { name: 'Закрытый гольф-клуб', category: 'vip', difficulty: 'hard' },
+  { name: 'Пентхаус-вечеринка', category: 'vip', difficulty: 'hard' }
 ];
 
 const LOCAL_MY_ID_KEY = 'spy_my_id';
@@ -378,7 +408,7 @@ async function joinRoom() {
     return;
   }
 
-  if (!['all', 'general', 'cinema', 'sport', 'travel', 'work'].includes(category)) {
+  if (!['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip'].includes(category)) {
     joinError.textContent = 'Неизвестная категория.';
     return;
   }
