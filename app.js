@@ -883,6 +883,14 @@ async function imageFileToDataUrl(file) {
 
 function hideRoleReveal() {
   roleRevealModal.classList.add('hidden');
+  if (roleRevealCard) {
+    roleRevealCard.classList.remove('masked');
+  }
+}
+
+function setRoleRevealMasked(masked) {
+  if (!roleRevealCard) return;
+  roleRevealCard.classList.toggle('masked', Boolean(masked));
 }
 
 let flipAudioContext = null;
@@ -979,6 +987,7 @@ function showRoleReveal(roomData, iAmSpy, iAmEliminated) {
   }
 
   roleRevealModal.classList.remove('hidden');
+  setRoleRevealMasked(true);
   if (roleRevealCard) {
     roleRevealCard.classList.remove('flip-in');
     void roleRevealCard.offsetWidth;
@@ -1480,17 +1489,21 @@ function renderRoom() {
     roundAlert.className = 'round-alert hidden';
     roundAlert.textContent = '';
     const iAmEliminated = me?.eliminated === true;
+    const spyIds = getSpyIdsFromRoom(room);
+    const spyUids = getSpyUidsFromRoom(room);
+    const iAmSpy = spyIds.includes(state.myId) || spyUids.includes(state.authUid);
     const revealToken = buildRoundRevealToken(room);
-    if (revealToken !== state.lastRevealToken) {
+    const playersReady = state.players.length > 0;
+    if (room.state === 'started' && playersReady && revealToken !== state.lastRevealToken) {
       state.lastRevealToken = revealToken;
-      hideRoleReveal();
+      showRoleReveal(room, iAmSpy, iAmEliminated);
     }
 
-    roleCard.className = 'role-card role-card--locked';
-    roleCard.textContent = 'Нажми, чтобы увидеть роль';
+    roleCard.className = 'role-card';
+    roleCard.textContent = 'Личные данные роли скрыты в игре.';
     roleHint.textContent = iAmEliminated
-      ? 'Ты в режиме ожидания. При необходимости открой карту кликом.'
-      : 'Локация и роль откроются только после твоего клика.';
+      ? 'Ты в режиме ожидания. При необходимости открой карту кнопкой.'
+      : 'Если забыл роль, нажми "Показать карту".';
 
     if (room.state === 'finished' && room.lastVoteResult === 'all_spies_found') {
       roundAlert.className = 'round-alert success';
@@ -2199,7 +2212,14 @@ if (gameCopyRoomBtn) {
   });
 }
 showRoleCardBtn.addEventListener('click', openRoleCardByClick);
-roleCard.addEventListener('click', openRoleCardByClick);
+if (roleRevealCard) {
+  roleRevealCard.addEventListener('click', () => {
+    if (roleRevealCard.classList.contains('masked')) {
+      playFlipSound();
+      setRoleRevealMasked(false);
+    }
+  });
+}
 nameInput.addEventListener('input', () => {
   if (!state.myAvatar) {
     renderAvatarPreview('', nameInput.value.trim());
