@@ -421,6 +421,8 @@ const LOCAL_SPY_MODE_KEY = 'spy_mode';
 const LOCAL_GAME_VARIANT_KEY = 'spy_game_variant';
 const LOCAL_CATEGORY_KEY = 'spy_location_category';
 const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
+const AVATAR_MAX_BYTES = 90 * 1024;
+const AVATAR_MAX_SIDE = 192;
 
 const joinCard = document.getElementById('joinCard');
 const lobbyCard = document.getElementById('lobbyCard');
@@ -818,6 +820,22 @@ function isPlayerActive(player) {
   return Date.now() - lastSeenMs < 60_000;
 }
 
+function getLobbyStarterPlayer(players = state.players) {
+  const activePlayers = players.filter(isPlayerActive);
+  if (activePlayers.length === 0) return null;
+  return [...activePlayers].sort((a, b) => {
+    const joinedA = toMillis(a.joinedAt);
+    const joinedB = toMillis(b.joinedAt);
+    if (joinedA !== joinedB) return joinedA - joinedB;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  })[0];
+}
+
+function canCurrentPlayerStartRound(players = state.players) {
+  const starter = getLobbyStarterPlayer(players);
+  return Boolean(starter && starter.id === state.myId);
+}
+
 function setVisible(view) {
   joinCard.classList.toggle('hidden', view !== 'join');
   lobbyCard.classList.toggle('hidden', view !== 'lobby');
@@ -855,6 +873,18 @@ function renderTopAvatar(target, avatarUrl, name) {
 }
 
 async function imageFileToDataUrl(file) {
+  if (!file || !String(file.type || '').startsWith('image/')) {
+    throw new Error('Выбери файл изображения');
+  }
+
+  const estimateDataUrlBytes = (dataUrl) => {
+    const commaIndex = dataUrl.indexOf(',');
+    if (commaIndex < 0) return Number.MAX_SAFE_INTEGER;
+    const base64 = dataUrl.slice(commaIndex + 1);
+    const padding = base64.endsWith('==') ? 2 : (base64.endsWith('=') ? 1 : 0);
+    return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+  };
+
   const rawDataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ''));
@@ -869,16 +899,34 @@ async function imageFileToDataUrl(file) {
     img.src = rawDataUrl;
   });
 
-  const maxSide = 320;
-  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-  const w = Math.max(1, Math.round(image.width * scale));
-  const h = Math.max(1, Math.round(image.height * scale));
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(image, 0, 0, w, h);
-  return canvas.toDataURL('image/jpeg', 0.85);
+  let bestCandidate = '';
+  const sideFactors = [1, 0.9, 0.8, 0.7, 0.6];
+  const qualitySteps = [0.78, 0.68, 0.58, 0.5];
+
+  for (const sideFactor of sideFactors) {
+    const maxSide = Math.max(64, Math.round(AVATAR_MAX_SIDE * sideFactor));
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const w = Math.max(1, Math.round(image.width * scale));
+    const h = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0, w, h);
+
+    for (const quality of qualitySteps) {
+      const candidate = canvas.toDataURL('image/jpeg', quality);
+      bestCandidate = candidate;
+      if (estimateDataUrlBytes(candidate) <= AVATAR_MAX_BYTES) {
+        return candidate;
+      }
+    }
+  }
+
+  if (bestCandidate && estimateDataUrlBytes(bestCandidate) <= AVATAR_MAX_BYTES) {
+    return bestCandidate;
+  }
+  throw new Error('Изображение слишком большое. Выбери более простую картинку.');
 }
 
 function hideRoleReveal() {
@@ -1532,6 +1580,7 @@ function renderRoom() {
   } else {
     setVisible('lobby');
     hideRoleReveal();
+    startRoundBtn.disabled = !canCurrentPlayerStartRound();
     roundAlert.className = 'round-alert hidden';
     roundAlert.textContent = '';
     votePanel.classList.add('hidden');
@@ -1887,6 +1936,11 @@ async function startRound() {
     return;
   }
 
+  if (!canCurrentPlayerStartRound()) {
+    lobbyStatus.textContent = 'Только первый вошедший в лобби может начать игру.';
+    return;
+  }
+
   const eligiblePlayers = state.players.filter(isPlayerActive);
   const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
   const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
@@ -1928,6 +1982,12 @@ async function startRound() {
       const data = snap.data();
       if (data.state === 'started') {
         throw new Error('Раунд уже запущен другим игроком');
+      }
+      const playersSnapshot = await tx.get(query(collection(state.db, 'rooms', state.roomCode, 'players'), orderBy('joinedAt')));
+      const playersInRoom = playersSnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+      const starter = getLobbyStarterPlayer(playersInRoom);
+      if (!starter || starter.id !== state.myId) {
+        throw new Error('Только первый вошедший в лобби может начать игру');
       }
 
       const fallback = pickLocationForRoom(data);
