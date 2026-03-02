@@ -253,6 +253,13 @@ select:focus {
   transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
 
+.vote-card-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .vote-card:hover {
   transform: translateY(-1px);
   border-color: #fb923c;
@@ -269,11 +276,36 @@ select:focus {
 
 .vote-card-name {
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vote-card-count {
   font-size: 12px;
   color: var(--muted);
+}
+
+.vote-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: #fff7ed;
+  overflow: hidden;
+  flex: 0 0 30px;
+}
+
+.vote-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .chat-panel {

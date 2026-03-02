@@ -171,6 +171,7 @@ LOCATIONS.push(
 
 const LOCAL_MY_ID_KEY = 'spy_my_id';
 const LOCAL_NAME_KEY = 'spy_player_name';
+const LOCAL_AVATAR_KEY = 'spy_player_avatar';
 const LOCAL_ROOM_KEY = 'spy_room_code';
 const LOCAL_EXPECTED_KEY = 'spy_expected_players';
 const LOCAL_CATEGORY_KEY = 'spy_location_category';
@@ -181,6 +182,7 @@ const lobbyCard = document.getElementById('lobbyCard');
 const gameCard = document.getElementById('gameCard');
 
 const nameInput = document.getElementById('nameInput');
+const avatarInput = document.getElementById('avatarInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const expectedPlayersInput = document.getElementById('expectedPlayersInput');
 const categoryInput = document.getElementById('categoryInput');
@@ -223,6 +225,7 @@ const state = {
   authUid: '',
   myId: localStorage.getItem(LOCAL_MY_ID_KEY) || crypto.randomUUID(),
   myName: localStorage.getItem(LOCAL_NAME_KEY) || '',
+  myAvatar: localStorage.getItem(LOCAL_AVATAR_KEY) || '',
   roomCode: localStorage.getItem(LOCAL_ROOM_KEY) || '',
   expectedPlayers: Number(localStorage.getItem(LOCAL_EXPECTED_KEY) || 3),
   locationCategory: localStorage.getItem(LOCAL_CATEGORY_KEY) || 'all',
@@ -249,6 +252,10 @@ function hasValidFirebaseConfig(config) {
 
 function normalizeRoomCode(input) {
   return input.trim().toLowerCase().replace(/\s+/g, '').slice(0, 20);
+}
+
+function normalizeAvatarUrl(input) {
+  return input.trim().slice(0, 300);
 }
 
 function randomItem(items) {
@@ -372,6 +379,12 @@ function renderPlayers() {
     li.textContent = `${player.name}${suffix} • ${status}`;
     playersList.appendChild(li);
   });
+}
+
+function getInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  if (parts.length === 0) return '?';
+  return parts.map((part) => part[0].toUpperCase()).join('');
 }
 
 function activeAlivePlayers() {
@@ -516,10 +529,37 @@ function renderVotePanel() {
     button.className = 'vote-card';
     const isSelected = myVote?.targetPlayerId === player.id;
     const votesForPlayer = voteCounts.get(player.id) || 0;
-    button.innerHTML = `
-      <span class="vote-card-name">${isSelected ? '✓ ' : ''}${player.name}</span>
-      <span class="vote-card-count">${votesForPlayer} голос(ов)</span>
-    `;
+
+    const left = document.createElement('span');
+    left.className = 'vote-card-left';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'vote-avatar';
+    if (player.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = player.avatarUrl;
+      img.alt = player.name || 'avatar';
+      img.addEventListener('error', () => {
+        avatar.textContent = getInitials(player.name);
+      });
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getInitials(player.name);
+    }
+
+    const name = document.createElement('span');
+    name.className = 'vote-card-name';
+    name.textContent = `${isSelected ? '✓ ' : ''}${player.name}`;
+
+    const count = document.createElement('span');
+    count.className = 'vote-card-count';
+    count.textContent = `${votesForPlayer} голос(ов)`;
+
+    left.appendChild(avatar);
+    left.appendChild(name);
+    button.appendChild(left);
+    button.appendChild(count);
+
     if (isSelected) button.classList.add('selected');
     if (Boolean(myVote)) button.classList.add('disabled');
     button.disabled = Boolean(myVote);
@@ -821,6 +861,7 @@ async function ensureRoomAndJoin() {
     {
       id: state.myId,
       name: state.myName,
+      avatarUrl: state.myAvatar,
       connected: true,
       eliminated: false,
       waiting: false,
@@ -842,6 +883,7 @@ async function ensureRoomAndJoin() {
 
 async function joinRoom() {
   const name = nameInput.value.trim();
+  const avatarUrl = normalizeAvatarUrl(avatarInput.value);
   const code = normalizeRoomCode(roomCodeInput.value);
   const expected = Number(expectedPlayersInput.value);
   const category = categoryInput.value;
@@ -879,11 +921,13 @@ async function joinRoom() {
 
   joinError.textContent = '';
   state.myName = name;
+  state.myAvatar = avatarUrl;
   state.roomCode = code;
   state.expectedPlayers = expected;
   state.locationCategory = category;
   state.locationDifficulty = difficulty;
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
+  localStorage.setItem(LOCAL_AVATAR_KEY, state.myAvatar);
   localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
   localStorage.setItem(LOCAL_EXPECTED_KEY, String(state.expectedPlayers));
   localStorage.setItem(LOCAL_CATEGORY_KEY, state.locationCategory);
@@ -1109,6 +1153,7 @@ async function initFirebase() {
 
 function restoreInputs() {
   nameInput.value = state.myName;
+  avatarInput.value = state.myAvatar;
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
   categoryInput.value = state.locationCategory;
