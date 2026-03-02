@@ -183,6 +183,8 @@ const gameCard = document.getElementById('gameCard');
 
 const nameInput = document.getElementById('nameInput');
 const avatarInput = document.getElementById('avatarInput');
+const avatarFileInput = document.getElementById('avatarFileInput');
+const avatarPreview = document.getElementById('avatarPreview');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const expectedPlayersInput = document.getElementById('expectedPlayersInput');
 const categoryInput = document.getElementById('categoryInput');
@@ -255,7 +257,7 @@ function normalizeRoomCode(input) {
 }
 
 function normalizeAvatarUrl(input) {
-  return input.trim().slice(0, 300);
+  return input.trim();
 }
 
 function randomItem(items) {
@@ -326,6 +328,48 @@ function setVisible(view) {
   joinCard.classList.toggle('hidden', view !== 'join');
   lobbyCard.classList.toggle('hidden', view !== 'lobby');
   gameCard.classList.toggle('hidden', view !== 'game');
+}
+
+function renderAvatarPreview(avatarUrl, name) {
+  avatarPreview.innerHTML = '';
+  if (avatarUrl) {
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = name || 'avatar';
+    img.addEventListener('error', () => {
+      avatarPreview.textContent = getInitials(name);
+    });
+    avatarPreview.appendChild(img);
+    return;
+  }
+  avatarPreview.textContent = getInitials(name);
+}
+
+async function imageFileToDataUrl(file) {
+  const rawDataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
+    reader.readAsDataURL(file);
+  });
+
+  const image = await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Не удалось загрузить изображение'));
+    img.src = rawDataUrl;
+  });
+
+  const maxSide = 320;
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const w = Math.max(1, Math.round(image.width * scale));
+  const h = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(image, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', 0.85);
 }
 
 function hideRoleReveal() {
@@ -1158,6 +1202,7 @@ function restoreInputs() {
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
   categoryInput.value = state.locationCategory;
   difficultyInput.value = state.locationDifficulty;
+  renderAvatarPreview(state.myAvatar, state.myName);
 }
 
 joinBtn.addEventListener('click', joinRoom);
@@ -1175,6 +1220,28 @@ showRoleCardBtn.addEventListener('click', () => {
   const iAmEliminated = me?.eliminated === true;
   const iAmSpy = state.roomData.spyId === state.myId || state.roomData.spyUid === state.authUid;
   showRoleReveal(state.roomData, iAmSpy, iAmEliminated);
+});
+avatarInput.addEventListener('input', () => {
+  const value = normalizeAvatarUrl(avatarInput.value);
+  state.myAvatar = value;
+  renderAvatarPreview(value, nameInput.value.trim() || state.myName);
+});
+nameInput.addEventListener('input', () => {
+  if (!avatarInput.value.trim()) {
+    renderAvatarPreview('', nameInput.value.trim());
+  }
+});
+avatarFileInput.addEventListener('change', async () => {
+  const file = avatarFileInput.files && avatarFileInput.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await imageFileToDataUrl(file);
+    avatarInput.value = dataUrl;
+    state.myAvatar = dataUrl;
+    renderAvatarPreview(dataUrl, nameInput.value.trim() || state.myName);
+  } catch (error) {
+    showGlobalStatus(`Ошибка загрузки аватара: ${error.message}`, 'error');
+  }
 });
 chatSendBtn.addEventListener('click', sendChatMessage);
 roleRevealBtn.addEventListener('click', hideRoleReveal);

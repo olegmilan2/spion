@@ -95,6 +95,32 @@ h2 {
   font-weight: 700;
 }
 
+.avatar-preview-wrap {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--muted);
+  background: #fff;
+  overflow: hidden;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 textarea,
 input,
 select {

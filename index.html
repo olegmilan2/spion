@@ -20,7 +20,12 @@
       <label for="nameInput" class="label">Твой ник</label>
       <input id="nameInput" type="text" maxlength="32" placeholder="Например: Oleg">
       <label for="avatarInput" class="label">Аватар (URL, необязательно)</label>
-      <input id="avatarInput" type="url" maxlength="300" placeholder="https://...">
+      <input id="avatarInput" type="text" maxlength="500000" placeholder="https://...">
+      <label for="avatarFileInput" class="label">или загрузить с телефона</label>
+      <input id="avatarFileInput" type="file" accept="image/*">
+      <div class="avatar-preview-wrap">
+        <span id="avatarPreview" class="avatar-preview">?</span>
+      </div>
       <label for="roomCodeInput" class="label">Код комнаты</label>
       <input id="roomCodeInput" type="text" maxlength="20" placeholder="Например: 1234">
       <label for="expectedPlayersInput" class="label">Сколько игроков в раунде</label>
