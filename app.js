@@ -182,7 +182,6 @@ const lobbyCard = document.getElementById('lobbyCard');
 const gameCard = document.getElementById('gameCard');
 
 const nameInput = document.getElementById('nameInput');
-const avatarInput = document.getElementById('avatarInput');
 const avatarFileInput = document.getElementById('avatarFileInput');
 const avatarPreview = document.getElementById('avatarPreview');
 const roomCodeInput = document.getElementById('roomCodeInput');
@@ -254,10 +253,6 @@ function hasValidFirebaseConfig(config) {
 
 function normalizeRoomCode(input) {
   return input.trim().toLowerCase().replace(/\s+/g, '').slice(0, 20);
-}
-
-function normalizeAvatarUrl(input) {
-  return input.trim();
 }
 
 function randomItem(items) {
@@ -927,7 +922,6 @@ async function ensureRoomAndJoin() {
 
 async function joinRoom() {
   const name = nameInput.value.trim();
-  const avatarUrl = normalizeAvatarUrl(avatarInput.value);
   const code = normalizeRoomCode(roomCodeInput.value);
   const expected = Number(expectedPlayersInput.value);
   const category = categoryInput.value;
@@ -965,7 +959,6 @@ async function joinRoom() {
 
   joinError.textContent = '';
   state.myName = name;
-  state.myAvatar = avatarUrl;
   state.roomCode = code;
   state.expectedPlayers = expected;
   state.locationCategory = category;
@@ -1197,7 +1190,6 @@ async function initFirebase() {
 
 function restoreInputs() {
   nameInput.value = state.myName;
-  avatarInput.value = state.myAvatar;
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
   categoryInput.value = state.locationCategory;
@@ -1221,13 +1213,8 @@ showRoleCardBtn.addEventListener('click', () => {
   const iAmSpy = state.roomData.spyId === state.myId || state.roomData.spyUid === state.authUid;
   showRoleReveal(state.roomData, iAmSpy, iAmEliminated);
 });
-avatarInput.addEventListener('input', () => {
-  const value = normalizeAvatarUrl(avatarInput.value);
-  state.myAvatar = value;
-  renderAvatarPreview(value, nameInput.value.trim() || state.myName);
-});
 nameInput.addEventListener('input', () => {
-  if (!avatarInput.value.trim()) {
+  if (!state.myAvatar) {
     renderAvatarPreview('', nameInput.value.trim());
   }
 });
@@ -1236,7 +1223,6 @@ avatarFileInput.addEventListener('change', async () => {
   if (!file) return;
   try {
     const dataUrl = await imageFileToDataUrl(file);
-    avatarInput.value = dataUrl;
     state.myAvatar = dataUrl;
     renderAvatarPreview(dataUrl, nameInput.value.trim() || state.myName);
   } catch (error) {
