@@ -313,7 +313,8 @@ const state = {
   votesUnsub: null,
   chatUnsub: null,
   presenceTimerId: null,
-  lastRevealToken: ''
+  lastRevealToken: '',
+  recoveringRoom: false
 };
 
 localStorage.setItem(LOCAL_MY_ID_KEY, state.myId);
@@ -487,6 +488,12 @@ function toMillis(value) {
   if (typeof value.toMillis === 'function') return value.toMillis();
   const parsed = new Date(value).getTime();
   return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function isStaleRound(roomData) {
+  const startedAtMs = toMillis(roomData?.startedAt);
+  if (!startedAtMs) return true;
+  return Date.now() - startedAtMs > 10 * 60 * 1000;
 }
 
 function isPlayerActive(player) {
@@ -1031,6 +1038,36 @@ function chatCollectionRef() {
   return collection(state.db, 'rooms', state.roomCode, 'chat');
 }
 
+async function recoverRoomToLobby() {
+  if (!state.roomData || state.recoveringRoom) return;
+  if (state.roomData.state !== 'started' && state.roomData.state !== 'finished') return;
+
+  state.recoveringRoom = true;
+  try {
+    await updateDoc(roomRef(), {
+      state: 'lobby',
+      spyIds: [],
+      spyUids: [],
+      spyActions: {},
+      spyId: deleteField(),
+      spyUid: deleteField(),
+      eliminatedPlayerId: deleteField(),
+      eliminatedPlayerName: deleteField(),
+      lastVoteResult: deleteField(),
+      winner: deleteField(),
+      foundSpyIds: [],
+      voteStage: 1,
+      resolvedVoteStage: 0,
+      updatedAt: serverTimestamp()
+    });
+    lobbyStatus.textContent = 'Комната была в старом раунде и автоматически возвращена в лобби.';
+  } catch (error) {
+    showGlobalStatus(`Не удалось восстановить комнату: ${error.message}`, 'error');
+  } finally {
+    state.recoveringRoom = false;
+  }
+}
+
 function subscribeRoom() {
   clearSubscriptions();
 
@@ -1054,9 +1091,17 @@ function subscribeRoom() {
     playersQuery,
     (snapshot) => {
       state.players = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+      const activeCount = state.players.filter(isPlayerActive).length;
+      if (
+        state.roomData &&
+        (state.roomData.state === 'started' || state.roomData.state === 'finished') &&
+        activeCount < 2 &&
+        isStaleRound(state.roomData)
+      ) {
+        recoverRoomToLobby();
+      }
       renderPlayers();
       if (state.roomData && state.roomData.state !== 'started') {
-        const activeCount = state.players.filter(isPlayerActive).length;
         const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
         const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
         const spyMode = state.roomData.spyMode || state.spyMode || 'blind';
