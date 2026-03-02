@@ -314,7 +314,10 @@ function activeAlivePlayers() {
 
 function currentRoundVotes() {
   const roundNumber = Number(state.roomData?.roundNumber || 1);
-  return state.votes.filter((vote) => Number(vote.roundNumber || 0) === roundNumber);
+  const voteStage = Number(state.roomData?.voteStage || 1);
+  return state.votes.filter(
+    (vote) => Number(vote.roundNumber || 0) === roundNumber && Number(vote.voteStage || 1) === voteStage
+  );
 }
 
 function voteByMe() {
@@ -323,7 +326,9 @@ function voteByMe() {
 
 async function tryResolveVotes() {
   if (!state.roomData || state.roomData.state !== 'started') return;
-  if (state.roomData.eliminatedRound === state.roomData.roundNumber) return;
+
+  const voteStage = Number(state.roomData.voteStage || 1);
+  if (Number(state.roomData.resolvedVoteStage || 0) === voteStage) return;
 
   const alivePlayers = activeAlivePlayers();
   const votes = currentRoundVotes();
@@ -355,21 +360,42 @@ async function tryResolveVotes() {
       const roomData = roomSnap.data();
 
       if (roomData.state !== 'started') return;
-      if (roomData.eliminatedRound === roomData.roundNumber) return;
+      const currentStage = Number(roomData.voteStage || 1);
+      if (Number(roomData.resolvedVoteStage || 0) === currentStage) return;
       if (roomData.roundNumber !== state.roomData.roundNumber) return;
 
-      tx.update(playerRef(eliminatedPlayerId), {
-        eliminated: true,
-        waiting: true,
-        lastSeenAt: serverTimestamp()
-      });
+      if (eliminatedPlayerId === roomData.spyId) {
+        tx.update(playerRef(eliminatedPlayerId), {
+          eliminated: true,
+          waiting: true,
+          lastSeenAt: serverTimestamp()
+        });
 
-      tx.update(room, {
-        eliminatedPlayerId,
-        eliminatedPlayerName,
-        eliminatedRound: roomData.roundNumber,
-        updatedAt: serverTimestamp()
-      });
+        tx.update(room, {
+          state: 'finished',
+          lastVoteResult: 'spy_found',
+          eliminatedPlayerId,
+          eliminatedPlayerName,
+          resolvedVoteStage: currentStage,
+          winner: 'civilians',
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        tx.update(playerRef(eliminatedPlayerId), {
+          eliminated: true,
+          waiting: true,
+          lastSeenAt: serverTimestamp()
+        });
+
+        tx.update(room, {
+          lastVoteResult: 'wrong',
+          eliminatedPlayerId,
+          eliminatedPlayerName,
+          resolvedVoteStage: currentStage,
+          voteStage: currentStage + 1,
+          updatedAt: serverTimestamp()
+        });
+      }
     });
   } catch (error) {
     // another client can resolve first; safe to ignore race
@@ -395,12 +421,12 @@ function renderVotePanel() {
   const myVote = voteByMe();
   const votes = currentRoundVotes();
 
-  if (state.roomData.eliminatedRound === state.roomData.roundNumber) {
-    voteStatus.textContent = `Голосование завершено. Выбыл: ${state.roomData.eliminatedPlayerName || 'игрок'}.`;
+  if (state.roomData.lastVoteResult === 'wrong') {
+    voteStatus.textContent = `Вы выбрали не того (${state.roomData.eliminatedPlayerName || 'игрок'} выбыл). Игра продолжается.`;
   } else {
     voteStatus.textContent = myVote
-      ? `Твой голос принят. Проголосовало ${votes.length}/${activeAlivePlayers().length}.`
-      : `Проголосовало ${votes.length}/${activeAlivePlayers().length}.`;
+      ? `Твой голос принят (этап ${state.roomData.voteStage || 1}). Проголосовало ${votes.length}/${activeAlivePlayers().length}.`
+      : `Этап ${state.roomData.voteStage || 1}. Проголосовало ${votes.length}/${activeAlivePlayers().length}.`;
   }
 
   if (playersForVote.length === 0) {
@@ -418,7 +444,7 @@ function renderVotePanel() {
     const button = document.createElement('button');
     button.className = 'btn';
     button.textContent = myVote?.targetPlayerId === player.id ? `✓ ${player.name}` : player.name;
-    button.disabled = Boolean(myVote) || state.roomData.eliminatedRound === state.roomData.roundNumber;
+    button.disabled = Boolean(myVote);
     button.addEventListener('click', () => {
       castVote(player.id);
     });
@@ -444,7 +470,7 @@ function renderRoom() {
 
   renderPlayers();
 
-  if (room.state === 'started') {
+  if (room.state === 'started' || room.state === 'finished') {
     setVisible('game');
     const me = state.players.find((player) => player.id === state.myId);
     const iAmEliminated = me?.eliminated === true;
@@ -462,13 +488,16 @@ function renderRoom() {
         : 'Задача: задавать вопросы и найти шпиона.';
     }
 
-    if (room.eliminatedRound === room.roundNumber) {
-      gameStatus.textContent = `Голосование завершено. Выбыл: ${room.eliminatedPlayerName || 'игрок'}.`;
+    if (room.state === 'finished' && room.lastVoteResult === 'spy_found') {
+      gameStatus.textContent = `Шпион найден (${room.eliminatedPlayerName || 'игрок'}). Раунд завершен.`;
+      votePanel.classList.add('hidden');
+    } else if (room.lastVoteResult === 'wrong') {
+      gameStatus.textContent = `Вы выбрали не того (${room.eliminatedPlayerName || 'игрок'}). Игра продолжается.`;
+      renderVotePanel();
     } else {
       gameStatus.textContent = 'Раунд синхронизирован. Все игроки получили роли.';
+      renderVotePanel();
     }
-
-    renderVotePanel();
   } else {
     setVisible('lobby');
     votePanel.classList.add('hidden');
@@ -734,7 +763,10 @@ async function startRound() {
         locationHistory: updatedHistory,
         eliminatedPlayerId: deleteField(),
         eliminatedPlayerName: deleteField(),
-        eliminatedRound: deleteField(),
+        lastVoteResult: deleteField(),
+        winner: deleteField(),
+        voteStage: 1,
+        resolvedVoteStage: 0,
         startedBy: state.myId,
         startedAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -759,7 +791,6 @@ async function startRound() {
 
 async function castVote(targetPlayerId) {
   if (!state.roomData || state.roomData.state !== 'started') return;
-  if (state.roomData.eliminatedRound === state.roomData.roundNumber) return;
   if (voteByMe()) return;
 
   const me = state.players.find((player) => player.id === state.myId);
@@ -773,6 +804,7 @@ async function castVote(targetPlayerId) {
         voterName: state.myName,
         targetPlayerId,
         roundNumber: state.roomData.roundNumber,
+        voteStage: state.roomData.voteStage || 1,
         createdAt: serverTimestamp()
       },
       { merge: true }
@@ -785,7 +817,7 @@ async function castVote(targetPlayerId) {
 }
 
 async function resetRound() {
-  if (!state.roomData || state.roomData.state !== 'started') {
+  if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) {
     gameStatus.textContent = 'Раунд еще не начат.';
     return;
   }
@@ -809,7 +841,10 @@ async function resetRound() {
         spyUid: deleteField(),
         eliminatedPlayerId: deleteField(),
         eliminatedPlayerName: deleteField(),
-        eliminatedRound: deleteField(),
+        lastVoteResult: deleteField(),
+        winner: deleteField(),
+        voteStage: deleteField(),
+        resolvedVoteStage: deleteField(),
         location: deleteField(),
         startedBy: deleteField(),
         startedAt: deleteField(),
