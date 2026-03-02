@@ -78,7 +78,8 @@ const state = {
   roomData: null,
   players: [],
   roomUnsub: null,
-  playersUnsub: null
+  playersUnsub: null,
+  presenceTimerId: null
 };
 
 localStorage.setItem(LOCAL_MY_ID_KEY, state.myId);
@@ -95,6 +96,20 @@ function normalizeRoomCode(input) {
 
 function randomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function toMillis(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function isPlayerActive(player) {
+  if (player.connected === false) return false;
+  const lastSeenMs = toMillis(player.lastSeenAt);
+  if (!lastSeenMs) return true;
+  return Date.now() - lastSeenMs < 60_000;
 }
 
 function setVisible(view) {
@@ -122,7 +137,8 @@ function renderPlayers() {
     const li = document.createElement('li');
     li.className = 'player-item';
     const suffix = player.id === state.myId ? ' (ты)' : '';
-    li.textContent = `${player.name}${suffix}`;
+    const status = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
+    li.textContent = `${player.name}${suffix} • ${status}`;
     playersList.appendChild(li);
   });
 }
@@ -150,9 +166,10 @@ function renderRoom() {
     gameStatus.textContent = 'Раунд синхронизирован. Все игроки получили роли.';
   } else {
     setVisible('lobby');
-    lobbyStatus.textContent = state.players.length >= 3
+    const activeCount = state.players.filter(isPlayerActive).length;
+    lobbyStatus.textContent = activeCount >= 3
       ? 'Готово к старту. Нажми «Старт раунда».'
-      : 'Нужно минимум 3 игрока для старта.';
+      : 'Нужно минимум 3 активных игрока для старта.';
   }
 }
 
@@ -200,9 +217,10 @@ function subscribeRoom() {
       state.players = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
       renderPlayers();
       if (state.roomData && state.roomData.state !== 'started') {
-        lobbyStatus.textContent = state.players.length >= 3
+        const activeCount = state.players.filter(isPlayerActive).length;
+        lobbyStatus.textContent = activeCount >= 3
           ? 'Готово к старту. Нажми «Старт раунда».'
-          : 'Нужно минимум 3 игрока для старта.';
+          : 'Нужно минимум 3 активных игрока для старта.';
       }
     },
     (error) => {
@@ -246,6 +264,14 @@ async function ensureRoomAndJoin() {
     },
     { merge: true }
   );
+
+  if (state.presenceTimerId) clearInterval(state.presenceTimerId);
+  state.presenceTimerId = setInterval(() => {
+    updateDoc(playerRef(state.myId), {
+      connected: true,
+      lastSeenAt: serverTimestamp()
+    }).catch(() => {});
+  }, 15000);
 }
 
 async function joinRoom() {
@@ -289,9 +315,9 @@ async function startRound() {
     return;
   }
 
-  const eligiblePlayers = state.players.filter((player) => player.connected !== false);
+  const eligiblePlayers = state.players.filter(isPlayerActive);
   if (eligiblePlayers.length < 3) {
-    lobbyStatus.textContent = 'Нужно минимум 3 игрока в лобби.';
+    lobbyStatus.textContent = 'Нужно минимум 3 активных игрока в лобби.';
     return;
   }
 
@@ -364,6 +390,11 @@ async function resetRound() {
 }
 
 async function leaveRoom() {
+  if (state.presenceTimerId) {
+    clearInterval(state.presenceTimerId);
+    state.presenceTimerId = null;
+  }
+
   if (state.db && state.roomCode) {
     try {
       await updateDoc(playerRef(state.myId), {
