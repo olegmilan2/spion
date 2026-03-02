@@ -211,6 +211,10 @@ const chatSendBtn = document.getElementById('chatSendBtn');
 const gameStatus = document.getElementById('gameStatus');
 const newRoundBtn = document.getElementById('newRoundBtn');
 const leaveFromGameBtn = document.getElementById('leaveFromGameBtn');
+const roleRevealModal = document.getElementById('roleRevealModal');
+const roleRevealTitle = document.getElementById('roleRevealTitle');
+const roleRevealText = document.getElementById('roleRevealText');
+const roleRevealBtn = document.getElementById('roleRevealBtn');
 
 const state = {
   firebaseReady: false,
@@ -230,7 +234,8 @@ const state = {
   playersUnsub: null,
   votesUnsub: null,
   chatUnsub: null,
-  presenceTimerId: null
+  presenceTimerId: null,
+  lastRevealToken: ''
 };
 
 localStorage.setItem(LOCAL_MY_ID_KEY, state.myId);
@@ -313,6 +318,34 @@ function setVisible(view) {
   joinCard.classList.toggle('hidden', view !== 'join');
   lobbyCard.classList.toggle('hidden', view !== 'lobby');
   gameCard.classList.toggle('hidden', view !== 'game');
+}
+
+function hideRoleReveal() {
+  roleRevealModal.classList.add('hidden');
+}
+
+function buildRoundRevealToken(roomData) {
+  const roundNumber = Number(roomData.roundNumber || 1);
+  const startedAt = toMillis(roomData.startedAt);
+  return `${state.roomCode}:${roundNumber}:${startedAt}`;
+}
+
+function showRoleReveal(roomData, iAmSpy, iAmEliminated) {
+  if (iAmEliminated) {
+    roleRevealTitle.className = '';
+    roleRevealTitle.textContent = 'Режим ожидания';
+    roleRevealText.textContent = 'Ты выбыл в прошлом этапе голосования и ждешь следующий раунд.';
+  } else if (iAmSpy) {
+    roleRevealTitle.className = 'role-reveal-title-spy';
+    roleRevealTitle.textContent = 'Ты ШПИОН';
+    roleRevealText.textContent = 'Слушай ответы игроков и вычисли локацию, не выдав себя.';
+  } else {
+    roleRevealTitle.className = 'role-reveal-title-safe';
+    roleRevealTitle.textContent = 'Ты НЕ шпион';
+    roleRevealText.textContent = `Локация: ${roomData.location || '-'}`;
+  }
+
+  roleRevealModal.classList.remove('hidden');
 }
 
 function showGlobalStatus(message, type = 'muted') {
@@ -576,6 +609,12 @@ function renderRoom() {
     const me = state.players.find((player) => player.id === state.myId);
     const iAmEliminated = me?.eliminated === true;
     const iAmSpy = room.spyId === state.myId || room.spyUid === state.authUid;
+    const revealToken = buildRoundRevealToken(room);
+
+    if (room.state === 'started' && revealToken !== state.lastRevealToken) {
+      state.lastRevealToken = revealToken;
+      showRoleReveal(room, iAmSpy, iAmEliminated);
+    }
 
     if (iAmEliminated) {
       roleCard.className = 'role-card wait';
@@ -606,6 +645,7 @@ function renderRoom() {
     renderChat();
   } else {
     setVisible('lobby');
+    hideRoleReveal();
     roundAlert.className = 'round-alert hidden';
     roundAlert.textContent = '';
     votePanel.classList.add('hidden');
@@ -1035,6 +1075,8 @@ async function leaveRoom() {
   state.players = [];
   state.votes = [];
   state.chat = [];
+  state.lastRevealToken = '';
+  hideRoleReveal();
   setVisible('join');
 }
 
@@ -1072,6 +1114,7 @@ newRoundBtn.addEventListener('click', resetRound);
 leaveRoomBtn.addEventListener('click', leaveRoom);
 leaveFromGameBtn.addEventListener('click', leaveRoom);
 chatSendBtn.addEventListener('click', sendChatMessage);
+roleRevealBtn.addEventListener('click', hideRoleReveal);
 chatInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
     event.preventDefault();
