@@ -163,7 +163,7 @@ select:focus {
 }
 
 .role-card {
-  margin: 14px 0;
+  margin: 14px 0 10px;
   border: 1px dashed var(--line);
   border-radius: 12px;
   padding: 16px;
@@ -190,90 +190,27 @@ select:focus {
   flex-wrap: wrap;
 }
 
-.round-end {
-  margin-top: 16px;
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
-}
-
-.host-answer {
-  font-weight: 800;
-}
-
-.feed-card h2 {
-  margin-top: 0;
-}
-
-.live-rounds {
+.players-list {
   list-style: none;
-  margin: 12px 0 0;
+  margin: 10px 0 14px;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
-.live-round-item {
+.player-item {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 9px 12px;
+  font-weight: 700;
 }
 
-.live-round-main {
-  margin: 0;
-  font-weight: 800;
-}
-
-.live-round-meta {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.stat-box {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px;
-  background: #fff;
-}
-
-.stat-label {
-  margin: 0 0 6px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.stat-value {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.firebase-status {
-  min-height: 20px;
-  margin: 10px 0;
-  color: var(--muted);
-}
-
-.firebase-status[data-type='ok'] {
+#globalStatus[data-type='ok'] {
   color: var(--ok);
 }
 
-.firebase-status[data-type='error'] {
-  color: #b91c1c;
-}
-
-#liveRoundsStatus[data-type='ok'] {
-  color: var(--ok);
-}
-
-#liveRoundsStatus[data-type='error'] {
+#globalStatus[data-type='error'] {
   color: #b91c1c;
 }
 
@@ -297,9 +234,4 @@ select:focus {
   .actions .btn {
     width: 100%;
   }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
 }

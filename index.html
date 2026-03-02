@@ -13,76 +13,47 @@
   <div class="bg-shape bg-shape-a"></div>
   <div class="bg-shape bg-shape-b"></div>
   <main class="layout">
-    <section class="card setup-card" id="setupCard">
-      <p class="eyebrow">Party Game</p>
+    <section class="card join-card" id="joinCard">
+      <p class="eyebrow">Online Room</p>
       <h1>ШПИОН</h1>
-      <p class="lead">Один игрок не знает локацию. Остальные пытаются вычислить шпиона по вопросам.</p>
+      <p class="lead">Введи ник и код комнаты. Все в одной комнате видят общий лобби и одновременный старт.</p>
+      <label for="nameInput" class="label">Твой ник</label>
+      <input id="nameInput" type="text" maxlength="32" placeholder="Например: Oleg">
+      <label for="roomCodeInput" class="label">Код комнаты</label>
+      <input id="roomCodeInput" type="text" maxlength="20" placeholder="Например: 1234">
+      <button id="joinBtn" class="btn btn-primary">Войти в комнату</button>
+      <p id="joinError" class="error"></p>
+      <p id="globalStatus" class="hint"></p>
+    </section>
 
-      <label for="hostInput" class="label">Твой ник</label>
-      <input id="hostInput" type="text" maxlength="40" placeholder="Например: Oleg">
-
-      <label for="roomInput" class="label">Комната</label>
-      <input id="roomInput" type="text" maxlength="40" placeholder="Например: moscow-1">
-
-      <label for="playersInput" class="label">Игроки (через запятую или с новой строки)</label>
-      <textarea id="playersInput" rows="6" placeholder="Олег, Аня, Дима, Ира"></textarea>
-
-      <label for="minutesInput" class="label">Длительность раунда (минуты)</label>
-      <input id="minutesInput" type="number" min="1" max="30" value="8">
-
-      <button id="startBtn" class="btn btn-primary">Начать раунд</button>
-      <p id="setupError" class="error"></p>
+    <section class="card lobby-card hidden" id="lobbyCard">
+      <div class="topbar">
+        <p id="lobbyRoomText">Комната: -</p>
+        <p id="roundText">Раунд #1</p>
+      </div>
+      <h2>Лобби</h2>
+      <p class="hint">Игроки в комнате:</p>
+      <ul id="playersList" class="players-list"></ul>
+      <div class="actions">
+        <button id="startRoundBtn" class="btn btn-primary">Старт раунда</button>
+        <button id="leaveRoomBtn" class="btn">Выйти</button>
+      </div>
+      <p id="lobbyStatus" class="hint"></p>
     </section>
 
     <section class="card game-card hidden" id="gameCard">
       <div class="topbar">
-        <p id="progressText">Игрок 1 из 4</p>
-        <p id="timerText">08:00</p>
+        <p id="gameRoomText">Комната: -</p>
+        <p id="gameRoundText">Раунд #1</p>
       </div>
-
-      <h2 id="playerName">Игрок</h2>
-      <p id="hintText" class="hint">Нажми кнопку, чтобы увидеть роль.</p>
-
-      <div id="roleCard" class="role-card hidden"></div>
-
+      <h2>Роль</h2>
+      <div id="roleCard" class="role-card"></div>
+      <p id="roleHint" class="hint"></p>
       <div class="actions">
-        <button id="showRoleBtn" class="btn btn-primary">Показать роль</button>
-        <button id="nextBtn" class="btn hidden">Скрыть и передать</button>
-      </div>
-
-      <div id="roundEnd" class="round-end hidden">
-        <p>Все роли выданы. Начинайте вопросы и ищите шпиона.</p>
-        <button id="hostRevealBtn" class="btn">Показать ответ для ведущего</button>
-        <p id="hostAnswer" class="host-answer hidden"></p>
-        <p id="firebaseStatus" class="firebase-status"></p>
         <button id="newRoundBtn" class="btn btn-primary">Новый раунд</button>
+        <button id="leaveFromGameBtn" class="btn">Выйти</button>
       </div>
-    </section>
-
-    <section class="card feed-card">
-      <h2>Общая лента раундов</h2>
-      <p id="feedRoomCaption" class="hint">Показана текущая комната.</p>
-      <p id="liveRoundsStatus" class="hint">Подключение к общей базе...</p>
-      <ul id="liveRoundsList" class="live-rounds"></ul>
-    </section>
-
-    <section class="card stats-card">
-      <h2>Статистика</h2>
-      <p id="statsStatus" class="hint">Ожидание данных...</p>
-      <div class="stats-grid">
-        <div class="stat-box">
-          <p class="stat-label">Раундов</p>
-          <p id="statRounds" class="stat-value">0</p>
-        </div>
-        <div class="stat-box">
-          <p class="stat-label">Средняя длительность</p>
-          <p id="statAvgMinutes" class="stat-value">0 мин</p>
-        </div>
-        <div class="stat-box">
-          <p class="stat-label">Чаще шпион</p>
-          <p id="statTopSpy" class="stat-value">-</p>
-        </div>
-      </div>
+      <p id="gameStatus" class="hint"></p>
     </section>
   </main>
 

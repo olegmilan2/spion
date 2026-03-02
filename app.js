@@ -1,5 +1,18 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-import { addDoc, collection, getFirestore, limit, onSnapshot, orderBy, query, serverTimestamp, where } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+import {
+  collection,
+  doc,
+  getDoc,
+  getFirestore,
+  onSnapshot,
+  orderBy,
+  query,
+  runTransaction,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  deleteField
+} from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
 
 const LOCATIONS = [
@@ -26,55 +39,49 @@ const LOCATIONS = [
   'Цирк'
 ];
 
+const LOCAL_MY_ID_KEY = 'spy_my_id';
+const LOCAL_NAME_KEY = 'spy_player_name';
+const LOCAL_ROOM_KEY = 'spy_room_code';
+
+const joinCard = document.getElementById('joinCard');
+const lobbyCard = document.getElementById('lobbyCard');
+const gameCard = document.getElementById('gameCard');
+
+const nameInput = document.getElementById('nameInput');
+const roomCodeInput = document.getElementById('roomCodeInput');
+const joinBtn = document.getElementById('joinBtn');
+const joinError = document.getElementById('joinError');
+const globalStatus = document.getElementById('globalStatus');
+
+const lobbyRoomText = document.getElementById('lobbyRoomText');
+const roundText = document.getElementById('roundText');
+const playersList = document.getElementById('playersList');
+const lobbyStatus = document.getElementById('lobbyStatus');
+const startRoundBtn = document.getElementById('startRoundBtn');
+const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+
+const gameRoomText = document.getElementById('gameRoomText');
+const gameRoundText = document.getElementById('gameRoundText');
+const roleCard = document.getElementById('roleCard');
+const roleHint = document.getElementById('roleHint');
+const gameStatus = document.getElementById('gameStatus');
+const newRoundBtn = document.getElementById('newRoundBtn');
+const leaveFromGameBtn = document.getElementById('leaveFromGameBtn');
+
 const state = {
+  firebaseReady: false,
+  db: null,
+  authUid: '',
+  myId: localStorage.getItem(LOCAL_MY_ID_KEY) || crypto.randomUUID(),
+  myName: localStorage.getItem(LOCAL_NAME_KEY) || '',
+  roomCode: localStorage.getItem(LOCAL_ROOM_KEY) || '',
+  roomData: null,
   players: [],
-  spyIndex: -1,
-  location: '',
-  currentIndex: 0,
-  timerSeconds: 0,
-  timerId: null,
-  roundMinutes: 0,
-  roundStartedAt: '',
-  resultSaved: false,
-  liveRoundsUnsub: null,
-  hostName: '',
-  roomId: '',
-  roomLabel: '',
-  cachedRounds: [],
-  authUid: ''
+  roomUnsub: null,
+  playersUnsub: null
 };
 
-const setupCard = document.getElementById('setupCard');
-const gameCard = document.getElementById('gameCard');
-const hostInput = document.getElementById('hostInput');
-const roomInput = document.getElementById('roomInput');
-const playersInput = document.getElementById('playersInput');
-const minutesInput = document.getElementById('minutesInput');
-const startBtn = document.getElementById('startBtn');
-const setupError = document.getElementById('setupError');
-const progressText = document.getElementById('progressText');
-const timerText = document.getElementById('timerText');
-const playerName = document.getElementById('playerName');
-const hintText = document.getElementById('hintText');
-const roleCard = document.getElementById('roleCard');
-const showRoleBtn = document.getElementById('showRoleBtn');
-const nextBtn = document.getElementById('nextBtn');
-const roundEnd = document.getElementById('roundEnd');
-const hostRevealBtn = document.getElementById('hostRevealBtn');
-const hostAnswer = document.getElementById('hostAnswer');
-const firebaseStatus = document.getElementById('firebaseStatus');
-const newRoundBtn = document.getElementById('newRoundBtn');
-const liveRoundsStatus = document.getElementById('liveRoundsStatus');
-const liveRoundsList = document.getElementById('liveRoundsList');
-const feedRoomCaption = document.getElementById('feedRoomCaption');
-const statsStatus = document.getElementById('statsStatus');
-const statRounds = document.getElementById('statRounds');
-const statAvgMinutes = document.getElementById('statAvgMinutes');
-const statTopSpy = document.getElementById('statTopSpy');
-const firebaseConfig = window.FIREBASE_CONFIG || null;
-
-let db = null;
-let firebaseReady = false;
+localStorage.setItem(LOCAL_MY_ID_KEY, state.myId);
 
 function hasValidFirebaseConfig(config) {
   if (!config) return false;
@@ -82,387 +89,338 @@ function hasValidFirebaseConfig(config) {
   return requiredKeys.every((key) => typeof config[key] === 'string' && config[key] && !config[key].includes('YOUR_'));
 }
 
-function randomInt(max) {
-  return Math.floor(Math.random() * max);
+function normalizeRoomCode(input) {
+  return input.trim().toLowerCase().replace(/\s+/g, '').slice(0, 20);
 }
 
-function parsePlayers(raw) {
-  return raw
-    .split(/[\n,]/g)
-    .map((name) => name.trim())
-    .filter(Boolean);
+function randomItem(items) {
+  return items[Math.floor(Math.random() * items.length)];
 }
 
-function formatTime(totalSeconds) {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+function setVisible(view) {
+  joinCard.classList.toggle('hidden', view !== 'join');
+  lobbyCard.classList.toggle('hidden', view !== 'lobby');
+  gameCard.classList.toggle('hidden', view !== 'game');
 }
 
-function setFirebaseStatus(message, type = 'muted') {
-  firebaseStatus.textContent = message;
-  firebaseStatus.dataset.type = type;
+function showGlobalStatus(message, type = 'muted') {
+  globalStatus.textContent = message;
+  globalStatus.dataset.type = type;
 }
 
-function setLiveRoundsStatus(message, type = 'muted') {
-  liveRoundsStatus.textContent = message;
-  liveRoundsStatus.dataset.type = type;
-}
-
-function normalizeRoomId(value) {
-  return value.trim().toLowerCase().replace(/\s+/g, '-').slice(0, 40);
-}
-
-function updatePlayerView() {
-  const total = state.players.length;
-  const current = state.currentIndex + 1;
-  const name = state.players[state.currentIndex];
-  progressText.textContent = `Игрок ${current} из ${total}`;
-  playerName.textContent = name;
-  hintText.textContent = 'Нажми кнопку, чтобы увидеть роль.';
-  roleCard.className = 'role-card hidden';
-  roleCard.textContent = '';
-  showRoleBtn.classList.remove('hidden');
-  nextBtn.classList.add('hidden');
-}
-
-function showRole() {
-  const isSpy = state.currentIndex === state.spyIndex;
-  roleCard.classList.remove('hidden');
-  roleCard.classList.toggle('spy', isSpy);
-  roleCard.classList.toggle('safe', !isSpy);
-  roleCard.textContent = isSpy ? 'Ты ШПИОН. Вычисли локацию.' : `Локация: ${state.location}`;
-  hintText.textContent = 'Запомни роль и передай устройство дальше.';
-  showRoleBtn.classList.add('hidden');
-  nextBtn.classList.remove('hidden');
-}
-
-function endRevealPhase() {
-  playerName.textContent = 'Раунд начался';
-  progressText.textContent = `Комната: ${state.roomLabel}`;
-  hintText.textContent = 'Обсуждайте и задавайте вопросы.';
-  roleCard.className = 'role-card hidden';
-  showRoleBtn.classList.add('hidden');
-  nextBtn.classList.add('hidden');
-  roundEnd.classList.remove('hidden');
-}
-
-function nextPlayer() {
-  state.currentIndex += 1;
-  if (state.currentIndex >= state.players.length) {
-    endRevealPhase();
-    return;
-  }
-  updatePlayerView();
-}
-
-function tickTimer() {
-  if (state.timerSeconds <= 0) {
-    timerText.textContent = '00:00';
-    clearInterval(state.timerId);
-    state.timerId = null;
-    return;
-  }
-  state.timerSeconds -= 1;
-  timerText.textContent = formatTime(state.timerSeconds);
-}
-
-function startTimer(minutes) {
-  if (state.timerId) clearInterval(state.timerId);
-  state.timerSeconds = Math.max(1, Math.floor(minutes * 60));
-  timerText.textContent = formatTime(state.timerSeconds);
-  state.timerId = setInterval(tickTimer, 1000);
-}
-
-function formatRoundTime(value) {
-  if (!value) return 'время неизвестно';
-  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return 'время неизвестно';
-  return date.toLocaleString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: '2-digit'
-  });
-}
-
-function updateStats(docs) {
-  const roundsCount = docs.length;
-  statRounds.textContent = String(roundsCount);
-
-  if (roundsCount === 0) {
-    statAvgMinutes.textContent = '0 мин';
-    statTopSpy.textContent = '-';
-    statsStatus.textContent = `Нет данных для комнаты ${state.roomLabel || '-'}.`;
-    return;
-  }
-
-  const totalMinutes = docs.reduce((sum, docItem) => sum + (Number(docItem.data().roundMinutes) || 0), 0);
-  const avgMinutes = (totalMinutes / roundsCount).toFixed(1);
-  statAvgMinutes.textContent = `${avgMinutes} мин`;
-
-  const spyFrequency = new Map();
-  docs.forEach((docItem) => {
-    const spyName = docItem.data().spyName || 'Неизвестно';
-    spyFrequency.set(spyName, (spyFrequency.get(spyName) || 0) + 1);
-  });
-
-  let topSpyName = '-';
-  let topSpyCount = 0;
-  spyFrequency.forEach((count, spyName) => {
-    if (count > topSpyCount) {
-      topSpyCount = count;
-      topSpyName = spyName;
-    }
-  });
-
-  statTopSpy.textContent = `${topSpyName} (${topSpyCount})`;
-  statsStatus.textContent = `Статистика комнаты ${state.roomLabel || '-'}.`;
-}
-
-function renderLiveRounds(docs) {
-  liveRoundsList.innerHTML = '';
-
-  if (docs.length === 0) {
+function renderPlayers() {
+  playersList.innerHTML = '';
+  if (state.players.length === 0) {
     const li = document.createElement('li');
-    li.className = 'live-round-item';
-    li.textContent = `В комнате ${state.roomLabel || '-'} пока нет сохраненных раундов.`;
-    liveRoundsList.appendChild(li);
-    updateStats(docs);
+    li.className = 'player-item';
+    li.textContent = 'Пока нет игроков';
+    playersList.appendChild(li);
     return;
   }
 
-  docs.forEach((roundDoc) => {
-    const data = roundDoc.data();
+  state.players.forEach((player) => {
     const li = document.createElement('li');
-    li.className = 'live-round-item';
-
-    const main = document.createElement('p');
-    main.className = 'live-round-main';
-    main.textContent = `${data.spyName || 'Неизвестно'} был шпионом на локации "${data.location || 'Неизвестно'}"`;
-
-    const meta = document.createElement('p');
-    meta.className = 'live-round-meta';
-    meta.textContent = `Комната: ${data.roomLabel || data.roomId || '-'} • Ведущий: ${data.hostName || '-'} • Игроков: ${data.playersCount || 0} • Раунд: ${data.roundMinutes || 0} мин • ${formatRoundTime(data.createdAt || data.finishedAtIso)}`;
-
-    li.appendChild(main);
-    li.appendChild(meta);
-    liveRoundsList.appendChild(li);
+    li.className = 'player-item';
+    const suffix = player.id === state.myId ? ' (ты)' : '';
+    li.textContent = `${player.name}${suffix}`;
+    playersList.appendChild(li);
   });
-
-  updateStats(docs);
 }
 
-function rerenderFromCache() {
-  renderLiveRounds(state.cachedRounds);
-}
+function renderRoom() {
+  const room = state.roomData;
+  if (!room) return;
 
-function startLiveRoundsSync() {
-  if (!db || !firebaseReady || !state.roomId) return;
+  const roundNumber = room.roundNumber || 1;
+  lobbyRoomText.textContent = `Комната: ${state.roomCode}`;
+  roundText.textContent = `Раунд #${roundNumber}`;
+  gameRoomText.textContent = `Комната: ${state.roomCode}`;
+  gameRoundText.textContent = `Раунд #${roundNumber}`;
 
-  if (state.liveRoundsUnsub) {
-    state.liveRoundsUnsub();
-    state.liveRoundsUnsub = null;
+  renderPlayers();
+
+  if (room.state === 'started') {
+    setVisible('game');
+    const iAmSpy = room.spyId === state.myId;
+    roleCard.className = `role-card ${iAmSpy ? 'spy' : 'safe'}`;
+    roleCard.textContent = iAmSpy ? 'Ты ШПИОН' : `Локация: ${room.location || '-'}`;
+    roleHint.textContent = iAmSpy
+      ? 'Задача: вычислить локацию и не выдать себя.'
+      : 'Задача: задавать вопросы и найти шпиона.';
+    gameStatus.textContent = 'Раунд синхронизирован. Все игроки получили роли.';
+  } else {
+    setVisible('lobby');
+    lobbyStatus.textContent = state.players.length >= 3
+      ? 'Готово к старту. Нажми «Старт раунда».'
+      : 'Нужно минимум 3 игрока для старта.';
   }
+}
 
-  const roundsQuery = query(
-    collection(db, 'spy_rounds'),
-    where('roomId', '==', state.roomId),
-    orderBy('createdAt', 'desc'),
-    limit(100)
-  );
-  state.liveRoundsUnsub = onSnapshot(
-    roundsQuery,
-    (snapshot) => {
-      state.cachedRounds = snapshot.docs;
-      rerenderFromCache();
+function clearSubscriptions() {
+  if (state.roomUnsub) {
+    state.roomUnsub();
+    state.roomUnsub = null;
+  }
+  if (state.playersUnsub) {
+    state.playersUnsub();
+    state.playersUnsub = null;
+  }
+}
+
+function roomRef() {
+  return doc(state.db, 'rooms', state.roomCode);
+}
+
+function playerRef(playerId) {
+  return doc(state.db, 'rooms', state.roomCode, 'players', playerId);
+}
+
+function subscribeRoom() {
+  clearSubscriptions();
+
+  state.roomUnsub = onSnapshot(
+    roomRef(),
+    (snap) => {
+      if (!snap.exists()) {
+        showGlobalStatus('Комната была удалена.', 'error');
+        return;
+      }
+      state.roomData = snap.data();
+      renderRoom();
     },
     (error) => {
-      setLiveRoundsStatus(`Ошибка чтения ленты: ${error.message}`, 'error');
+      showGlobalStatus(`Ошибка room snapshot: ${error.message}`, 'error');
+    }
+  );
+
+  const playersQuery = query(collection(state.db, 'rooms', state.roomCode, 'players'), orderBy('joinedAt'));
+  state.playersUnsub = onSnapshot(
+    playersQuery,
+    (snapshot) => {
+      state.players = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+      renderPlayers();
+      if (state.roomData && state.roomData.state !== 'started') {
+        lobbyStatus.textContent = state.players.length >= 3
+          ? 'Готово к старту. Нажми «Старт раунда».'
+          : 'Нужно минимум 3 игрока для старта.';
+      }
+    },
+    (error) => {
+      showGlobalStatus(`Ошибка players snapshot: ${error.message}`, 'error');
     }
   );
 }
 
-function refreshRoomBinding() {
-  feedRoomCaption.textContent = `Показана комната: ${state.roomLabel || '-'}.`;
-  if (!db) {
-    setLiveRoundsStatus('Firebase не настроен: общая лента отключена.', 'error');
-  } else if (!firebaseReady) {
-    setLiveRoundsStatus('Подключение к общей базе...', 'muted');
-  } else if (!state.roomId) {
-    setLiveRoundsStatus('Укажи комнату, чтобы включить синхронизацию.', 'muted');
-  } else {
-    setLiveRoundsStatus(`Онлайн: синхронизация комнаты ${state.roomLabel || '-'}.`, 'ok');
-    startLiveRoundsSync();
-  }
-  rerenderFromCache();
+async function ensureRoomAndJoin() {
+  const room = roomRef();
+
+  await runTransaction(state.db, async (tx) => {
+    const snap = await tx.get(room);
+
+    if (!snap.exists()) {
+      tx.set(room, {
+        roomCode: state.roomCode,
+        ownerId: state.myId,
+        state: 'lobby',
+        roundNumber: 1,
+        createdByUid: state.authUid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      tx.update(room, {
+        updatedAt: serverTimestamp()
+      });
+    }
+  });
+
+  await setDoc(
+    playerRef(state.myId),
+    {
+      id: state.myId,
+      name: state.myName,
+      connected: true,
+      joinedAt: serverTimestamp(),
+      lastSeenAt: serverTimestamp(),
+      uid: state.authUid
+    },
+    { merge: true }
+  );
 }
 
-function restoreProfile() {
-  const savedHost = localStorage.getItem('spy_host_name') || '';
-  const savedRoom = localStorage.getItem('spy_room_label') || '';
+async function joinRoom() {
+  const name = nameInput.value.trim();
+  const code = normalizeRoomCode(roomCodeInput.value);
 
-  hostInput.value = savedHost;
-  roomInput.value = savedRoom;
-}
-
-function persistProfile() {
-  localStorage.setItem('spy_host_name', state.hostName);
-  localStorage.setItem('spy_room_label', state.roomLabel);
-}
-
-function startRound() {
-  const players = parsePlayers(playersInput.value);
-  const minutes = Number(minutesInput.value);
-  const hostName = hostInput.value.trim();
-  const roomLabel = roomInput.value.trim();
-  const roomId = normalizeRoomId(roomLabel);
-
-  if (!hostName) {
-    setupError.textContent = 'Укажи ник ведущего.';
+  if (!state.firebaseReady || !state.db) {
+    joinError.textContent = 'Firebase еще не готов. Подожди пару секунд.';
     return;
   }
 
-  if (!roomId) {
-    setupError.textContent = 'Укажи название комнаты.';
+  if (!name) {
+    joinError.textContent = 'Введи ник.';
     return;
   }
 
-  if (players.length < 3) {
-    setupError.textContent = 'Нужно минимум 3 игрока.';
+  if (!code) {
+    joinError.textContent = 'Введи код комнаты.';
     return;
   }
 
-  if (!Number.isFinite(minutes) || minutes < 1 || minutes > 30) {
-    setupError.textContent = 'Длительность должна быть от 1 до 30 минут.';
-    return;
+  joinError.textContent = '';
+  state.myName = name;
+  state.roomCode = code;
+  localStorage.setItem(LOCAL_NAME_KEY, state.myName);
+  localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
+
+  try {
+    await ensureRoomAndJoin();
+    subscribeRoom();
+    setVisible('lobby');
+    showGlobalStatus(`Подключено к комнате ${state.roomCode}.`, 'ok');
+  } catch (error) {
+    joinError.textContent = `Ошибка входа: ${error.message}`;
   }
-
-  setupError.textContent = '';
-  state.hostName = hostName;
-  state.roomId = roomId;
-  state.roomLabel = roomLabel;
-  state.players = players;
-  state.spyIndex = randomInt(players.length);
-  state.location = LOCATIONS[randomInt(LOCATIONS.length)];
-  state.currentIndex = 0;
-  state.roundMinutes = minutes;
-  state.roundStartedAt = new Date().toISOString();
-  state.resultSaved = false;
-  roundEnd.classList.add('hidden');
-  hostAnswer.classList.add('hidden');
-  hostAnswer.textContent = '';
-  persistProfile();
-
-  if (!db) {
-    setFirebaseStatus('Firebase не настроен: результат сохранен не будет.');
-  } else if (!firebaseReady) {
-    setFirebaseStatus('Подключение к Firebase...');
-  } else {
-    setFirebaseStatus('Firebase подключен. Результат будет сохранен после открытия ответа.');
-  }
-
-  refreshRoomBinding();
-
-  setupCard.classList.add('hidden');
-  gameCard.classList.remove('hidden');
-  updatePlayerView();
-  startTimer(minutes);
 }
 
-async function saveRoundResult() {
-  if (!db || !firebaseReady || state.resultSaved) return;
-
-  const payload = {
-    players: state.players,
-    playersCount: state.players.length,
-    spyName: state.players[state.spyIndex],
-    location: state.location,
-    roundMinutes: state.roundMinutes,
-    startedAtIso: state.roundStartedAt,
-    finishedAtIso: new Date().toISOString(),
-    createdAt: serverTimestamp(),
-    roomId: state.roomId,
-    roomLabel: state.roomLabel,
-    hostName: state.hostName,
-    createdByUid: state.authUid
-  };
-
-  await addDoc(collection(db, 'spy_rounds'), payload);
-  state.resultSaved = true;
-}
-
-async function showHostAnswer() {
-  hostAnswer.textContent = `Шпион: ${state.players[state.spyIndex]}. Локация: ${state.location}.`;
-  hostAnswer.classList.remove('hidden');
-
-  if (!db) {
-    setFirebaseStatus('Запись в Firestore отключена: заполни firebase-config.js', 'error');
+async function startRound() {
+  if (!state.roomData || state.roomData.state === 'started') {
+    lobbyStatus.textContent = 'Раунд уже стартовал.';
     return;
   }
 
-  if (!firebaseReady) {
-    setFirebaseStatus('Firebase еще подключается. Повтори через пару секунд.', 'error');
+  const eligiblePlayers = state.players.filter((player) => player.connected !== false);
+  if (eligiblePlayers.length < 3) {
+    lobbyStatus.textContent = 'Нужно минимум 3 игрока в лобби.';
+    return;
+  }
+
+  const spyPlayer = randomItem(eligiblePlayers);
+  const location = randomItem(LOCATIONS);
+
+  try {
+    await runTransaction(state.db, async (tx) => {
+      const room = roomRef();
+      const snap = await tx.get(room);
+
+      if (!snap.exists()) {
+        throw new Error('Комната не найдена');
+      }
+
+      const data = snap.data();
+      if (data.state === 'started') {
+        throw new Error('Раунд уже запущен другим игроком');
+      }
+
+      tx.update(room, {
+        state: 'started',
+        spyId: spyPlayer.id,
+        location,
+        startedBy: state.myId,
+        startedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    });
+
+    lobbyStatus.textContent = 'Раунд запущен. Раздаем роли...';
+  } catch (error) {
+    lobbyStatus.textContent = `Старт отклонен: ${error.message}`;
+  }
+}
+
+async function resetRound() {
+  if (!state.roomData || state.roomData.state !== 'started') {
+    gameStatus.textContent = 'Раунд еще не начат.';
     return;
   }
 
   try {
-    await saveRoundResult();
-    setFirebaseStatus('Результат раунда сохранен в Firestore.', 'ok');
+    await runTransaction(state.db, async (tx) => {
+      const room = roomRef();
+      const snap = await tx.get(room);
+
+      if (!snap.exists()) {
+        throw new Error('Комната не найдена');
+      }
+
+      const data = snap.data();
+      const nextRound = (data.roundNumber || 1) + 1;
+
+      tx.update(room, {
+        state: 'lobby',
+        roundNumber: nextRound,
+        spyId: deleteField(),
+        location: deleteField(),
+        startedBy: deleteField(),
+        startedAt: deleteField(),
+        updatedAt: serverTimestamp()
+      });
+    });
+
+    gameStatus.textContent = 'Переключено в лобби. Можно запускать новый раунд.';
   } catch (error) {
-    setFirebaseStatus(`Ошибка сохранения: ${error.message}`, 'error');
+    gameStatus.textContent = `Ошибка нового раунда: ${error.message}`;
   }
 }
 
-function resetToSetup() {
-  if (state.timerId) clearInterval(state.timerId);
-  state.timerId = null;
-  timerText.textContent = '00:00';
-  setFirebaseStatus('');
-  gameCard.classList.add('hidden');
-  setupCard.classList.remove('hidden');
+async function leaveRoom() {
+  if (state.db && state.roomCode) {
+    try {
+      await updateDoc(playerRef(state.myId), {
+        connected: false,
+        lastSeenAt: serverTimestamp()
+      });
+    } catch (error) {
+      // ignore disconnect errors
+    }
+  }
+
+  clearSubscriptions();
+  state.roomData = null;
+  state.players = [];
+  setVisible('join');
 }
 
-if (hasValidFirebaseConfig(firebaseConfig)) {
-  const app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
+async function initFirebase() {
+  const firebaseConfig = window.FIREBASE_CONFIG || null;
+  if (!hasValidFirebaseConfig(firebaseConfig)) {
+    showGlobalStatus('Firebase не настроен: заполни firebase-config.js', 'error');
+    return;
+  }
 
-  const auth = getAuth(app);
-  signInAnonymously(auth)
-    .then((authResult) => {
-      firebaseReady = true;
-      state.authUid = authResult.user.uid;
-      refreshRoomBinding();
-    })
-    .catch((error) => {
-      firebaseReady = false;
-      console.error('Firebase auth error:', error.message);
-      setLiveRoundsStatus(`Ошибка авторизации Firebase: ${error.message}`, 'error');
-    });
-} else {
-  setLiveRoundsStatus('Firebase не настроен: общая лента отключена.', 'error');
+  try {
+    const app = initializeApp(firebaseConfig);
+    state.db = getFirestore(app);
+    const auth = getAuth(app);
+    const result = await signInAnonymously(auth);
+    state.authUid = result.user.uid;
+    state.firebaseReady = true;
+    showGlobalStatus('Firebase подключен.', 'ok');
+  } catch (error) {
+    showGlobalStatus(`Ошибка Firebase: ${error.message}`, 'error');
+  }
 }
 
-restoreProfile();
-state.hostName = hostInput.value.trim();
-state.roomLabel = roomInput.value.trim();
-state.roomId = normalizeRoomId(state.roomLabel);
+function restoreInputs() {
+  nameInput.value = state.myName;
+  roomCodeInput.value = state.roomCode;
+}
 
-startBtn.addEventListener('click', startRound);
-showRoleBtn.addEventListener('click', showRole);
-nextBtn.addEventListener('click', nextPlayer);
-hostRevealBtn.addEventListener('click', () => {
-  showHostAnswer();
-});
-newRoundBtn.addEventListener('click', resetToSetup);
-hostInput.addEventListener('input', (event) => {
-  state.hostName = event.target.value.trim();
-});
-roomInput.addEventListener('input', (event) => {
-  state.roomLabel = event.target.value.trim();
-  state.roomId = normalizeRoomId(state.roomLabel);
-  state.cachedRounds = [];
-  refreshRoomBinding();
+joinBtn.addEventListener('click', joinRoom);
+startRoundBtn.addEventListener('click', startRound);
+newRoundBtn.addEventListener('click', resetRound);
+leaveRoomBtn.addEventListener('click', leaveRoom);
+leaveFromGameBtn.addEventListener('click', leaveRoom);
+
+window.addEventListener('beforeunload', () => {
+  if (state.db && state.roomCode) {
+    updateDoc(playerRef(state.myId), {
+      connected: false,
+      lastSeenAt: serverTimestamp()
+    }).catch(() => {});
+  }
 });
 
-refreshRoomBinding();
+setVisible('join');
+restoreInputs();
+initFirebase();

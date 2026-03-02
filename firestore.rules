@@ -1,37 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /spy_rounds/{roundId} {
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly([
-          'players',
-          'playersCount',
-          'spyName',
-          'location',
-          'roundMinutes',
-          'startedAtIso',
-          'finishedAtIso',
-          'createdAt',
-          'roomId',
-          'roomLabel',
-          'hostName',
-          'createdByUid'
-        ])
-        && request.resource.data.players is list
-        && request.resource.data.players.size() >= 3
-        && request.resource.data.playersCount == request.resource.data.players.size()
-        && request.resource.data.spyName is string
-        && request.resource.data.location is string
-        && request.resource.data.roundMinutes is number
-        && request.resource.data.startedAtIso is string
-        && request.resource.data.finishedAtIso is string
-        && request.resource.data.roomId is string
-        && request.resource.data.roomLabel is string
-        && request.resource.data.hostName is string
-        && request.resource.data.createdByUid == request.auth.uid;
+    match /rooms/{roomId} {
+      allow read, write: if request.auth != null;
+    }
 
-      allow read: if request.auth != null;
-      allow update, delete: if false;
+    match /rooms/{roomId}/players/{playerId} {
+      allow read, write: if request.auth != null;
     }
   }
 }
