@@ -446,6 +446,7 @@ const joinError = document.getElementById('joinError');
 const globalStatus = document.getElementById('globalStatus');
 
 const lobbyRoomText = document.getElementById('lobbyRoomText');
+const lobbyCopyRoomBtn = document.getElementById('lobbyCopyRoomBtn');
 const roundText = document.getElementById('roundText');
 const lobbyTopAvatar = document.getElementById('lobbyTopAvatar');
 const lobbyTopName = document.getElementById('lobbyTopName');
@@ -455,6 +456,7 @@ const startRoundBtn = document.getElementById('startRoundBtn');
 const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 
 const gameRoomText = document.getElementById('gameRoomText');
+const gameCopyRoomBtn = document.getElementById('gameCopyRoomBtn');
 const gameRoundText = document.getElementById('gameRoundText');
 const gameTopAvatar = document.getElementById('gameTopAvatar');
 const gameTopName = document.getElementById('gameTopName');
@@ -989,6 +991,70 @@ function showGlobalStatus(message, type = 'muted') {
   globalStatus.dataset.type = type;
 }
 
+function openRoleCardByClick() {
+  if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) return;
+  playFlipSound();
+  const me = state.players.find((player) => player.id === state.myId);
+  const iAmEliminated = me?.eliminated === true;
+  const iAmSpy = getSpyIdsFromRoom(state.roomData).includes(state.myId) || getSpyUidsFromRoom(state.roomData).includes(state.authUid);
+  showRoleReveal(state.roomData, iAmSpy, iAmEliminated);
+}
+
+function syncCopyRoomButtons() {
+  const hasRoomCode = Boolean(state.roomCode);
+  [lobbyCopyRoomBtn, gameCopyRoomBtn].forEach((button) => {
+    if (!button) return;
+    button.disabled = !hasRoomCode;
+    if (!hasRoomCode) button.textContent = 'коп.';
+  });
+}
+
+function fallbackCopyText(value) {
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } finally {
+    document.body.removeChild(textarea);
+  }
+  return copied;
+}
+
+function flashCopyState(button, label) {
+  if (!button) return;
+  button.textContent = label;
+  if (button.copyTimerId) {
+    window.clearTimeout(button.copyTimerId);
+  }
+  button.copyTimerId = window.setTimeout(() => {
+    button.textContent = 'коп.';
+  }, 1200);
+}
+
+async function copyRoomCode(button) {
+  const roomCode = String(state.roomCode || '').trim();
+  if (!roomCode) {
+    flashCopyState(button, 'нет');
+    return;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(roomCode);
+    } else if (!fallbackCopyText(roomCode)) {
+      throw new Error('Clipboard unavailable');
+    }
+    flashCopyState(button, 'ok');
+  } catch (error) {
+    flashCopyState(button, 'err');
+  }
+}
+
 function renderPlayers() {
   playersList.innerHTML = '';
   const showOnlyActive = !state.roomData || state.roomData.state === 'lobby';
@@ -1395,6 +1461,7 @@ function renderRoom() {
   setSpyModeUI(roomSpyMode);
   setGameVariantUI(roomGameVariant);
   lobbyRoomText.textContent = `Комната: ${state.roomCode}`;
+  syncCopyRoomButtons();
   roundText.textContent = `Раунд #${roundNumber}`;
   gameRoomText.textContent = `Комната: ${state.roomCode}`;
   gameRoundText.textContent = `Раунд #${roundNumber}`;
@@ -1413,22 +1480,17 @@ function renderRoom() {
     roundAlert.className = 'round-alert hidden';
     roundAlert.textContent = '';
     const iAmEliminated = me?.eliminated === true;
-    const spyIds = getSpyIdsFromRoom(room);
-    const spyUids = getSpyUidsFromRoom(room);
-    const iAmSpy = spyIds.includes(state.myId) || spyUids.includes(state.authUid);
     const revealToken = buildRoundRevealToken(room);
-    const playersReady = state.players.length > 0;
-
-    if (room.state === 'started' && playersReady && revealToken !== state.lastRevealToken) {
+    if (revealToken !== state.lastRevealToken) {
       state.lastRevealToken = revealToken;
-      showRoleReveal(room, iAmSpy, iAmEliminated);
+      hideRoleReveal();
     }
 
-    roleCard.className = 'role-card';
-    roleCard.textContent = 'Личные данные роли скрыты в игре.';
+    roleCard.className = 'role-card role-card--locked';
+    roleCard.textContent = 'Нажми, чтобы увидеть роль';
     roleHint.textContent = iAmEliminated
-      ? 'Ты в режиме ожидания. При необходимости открой карту кнопкой.'
-      : 'Если забыл роль, нажми "Показать карту".';
+      ? 'Ты в режиме ожидания. При необходимости открой карту кликом.'
+      : 'Локация и роль откроются только после твоего клика.';
 
     if (room.state === 'finished' && room.lastVoteResult === 'all_spies_found') {
       roundAlert.className = 'round-alert success';
@@ -1785,6 +1847,7 @@ async function joinRoom() {
   state.gameVariant = gameVariant;
   state.locationCategory = category;
   state.locationDifficulty = difficulty;
+  syncCopyRoomButtons();
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
   localStorage.setItem(LOCAL_AVATAR_KEY, state.myAvatar);
   localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
@@ -2125,14 +2188,18 @@ newRoundBtn.addEventListener('click', () => {
 });
 leaveRoomBtn.addEventListener('click', leaveRoom);
 leaveFromGameBtn.addEventListener('click', leaveRoom);
-showRoleCardBtn.addEventListener('click', () => {
-  if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) return;
-  playFlipSound();
-  const me = state.players.find((player) => player.id === state.myId);
-  const iAmEliminated = me?.eliminated === true;
-  const iAmSpy = getSpyIdsFromRoom(state.roomData).includes(state.myId) || getSpyUidsFromRoom(state.roomData).includes(state.authUid);
-  showRoleReveal(state.roomData, iAmSpy, iAmEliminated);
-});
+if (lobbyCopyRoomBtn) {
+  lobbyCopyRoomBtn.addEventListener('click', () => {
+    copyRoomCode(lobbyCopyRoomBtn);
+  });
+}
+if (gameCopyRoomBtn) {
+  gameCopyRoomBtn.addEventListener('click', () => {
+    copyRoomCode(gameCopyRoomBtn);
+  });
+}
+showRoleCardBtn.addEventListener('click', openRoleCardByClick);
+roleCard.addEventListener('click', openRoleCardByClick);
 nameInput.addEventListener('input', () => {
   if (!state.myAvatar) {
     renderAvatarPreview('', nameInput.value.trim());
@@ -2200,4 +2267,5 @@ window.addEventListener('beforeunload', () => {
 
 setVisible('join');
 restoreInputs();
+syncCopyRoomButtons();
 initFirebase();

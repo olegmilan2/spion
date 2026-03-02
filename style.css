@@ -299,6 +299,43 @@ select:focus {
   gap: 8px;
 }
 
+.room-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.room-meta p {
+  margin: 0;
+}
+
+.copy-room-btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 2px 6px;
+  min-height: 24px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.copy-room-btn:hover {
+  background: #fff7ed;
+}
+
+.copy-room-btn:active {
+  transform: translateY(1px);
+}
+
+.copy-room-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .top-name {
   margin: 0;
 }
@@ -399,6 +436,14 @@ select:focus {
   color: #92400e;
   border-color: #fde68a;
   background: #fffbeb;
+}
+
+.role-card--locked {
+  cursor: pointer;
+}
+
+.role-card--locked:hover {
+  border-color: #f59e0b;
 }
 
 .actions {
