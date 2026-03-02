@@ -53,7 +53,7 @@ function extractJson(text) {
 }
 
 function normalizeCategory(input) {
-  const allowed = ['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip', 'odessa'];
+  const allowed = ['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip', 'odessa', 'countries'];
   return allowed.includes(input) ? input : 'all';
 }
 
