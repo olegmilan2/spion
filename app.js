@@ -1162,7 +1162,11 @@ function restoreInputs() {
 
 joinBtn.addEventListener('click', joinRoom);
 startRoundBtn.addEventListener('click', startRound);
-newRoundBtn.addEventListener('click', resetRound);
+newRoundBtn.addEventListener('click', () => {
+  const ok = window.confirm('Начать новый раунд сейчас? Текущий прогресс голосования будет сброшен.');
+  if (!ok) return;
+  resetRound();
+});
 leaveRoomBtn.addEventListener('click', leaveRoom);
 leaveFromGameBtn.addEventListener('click', leaveRoom);
 showRoleCardBtn.addEventListener('click', () => {
