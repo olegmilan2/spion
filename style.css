@@ -959,6 +959,13 @@ select:focus {
   border: 1px solid rgba(15, 23, 42, 0.15);
 }
 
+.whoami-card-text {
+  display: block;
+  margin-top: 8px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .player-item.empty {
   grid-template-columns: 1fr;
   text-align: center;

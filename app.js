@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDocs,
   getFirestore,
   limit,
   onSnapshot,
@@ -874,6 +875,7 @@ const whoamiLobby = document.getElementById('whoamiLobby');
 const whoamiStatus = document.getElementById('whoamiStatus');
 const whoamiLobbyList = document.getElementById('whoamiLobbyList');
 const startRoundBtn = document.getElementById('startRoundBtn');
+const clearRoomBtn = document.getElementById('clearRoomBtn');
 const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 
 const gameRoomText = document.getElementById('gameRoomText');
@@ -1772,9 +1774,6 @@ async function assignWhoamiCard(targetId, value) {
       whoamiCard: card,
       whoamiCardAuthorId: state.myId,
       whoamiCardAuthorName: state.myName,
-      whoamiImage: deleteField(),
-      whoamiImageAuthorId: deleteField(),
-      whoamiImageAuthorName: deleteField(),
       lastSeenAt: serverTimestamp()
     });
     await updateDoc(playerRef(state.myId), {
@@ -1804,9 +1803,6 @@ async function assignWhoamiImage(targetId, file) {
       whoamiImage: dataUrl,
       whoamiImageAuthorId: state.myId,
       whoamiImageAuthorName: state.myName,
-      whoamiCard: deleteField(),
-      whoamiCardAuthorId: deleteField(),
-      whoamiCardAuthorName: deleteField(),
       lastSeenAt: serverTimestamp()
     });
     await updateDoc(playerRef(state.myId), {
@@ -1923,16 +1919,24 @@ function renderWhoamiPanel() {
     sub.className = 'player-sub';
     if (player.id === state.myId) {
       sub.textContent = 'карточка скрыта';
-    } else if (player.whoamiImage) {
-      const img = document.createElement('img');
-      img.src = player.whoamiImage;
-      img.alt = 'карточка';
-      img.className = 'whoami-card-image';
-      sub.textContent = '';
-      sub.appendChild(img);
     } else {
+      sub.textContent = '';
+      if (player.whoamiImage) {
+        const img = document.createElement('img');
+        img.src = player.whoamiImage;
+        img.alt = 'карточка';
+        img.className = 'whoami-card-image';
+        sub.appendChild(img);
+      }
       const card = String(player.whoamiCard || '').trim();
-      sub.textContent = card ? card : 'карточка не указана';
+      if (card) {
+        const text = document.createElement('span');
+        text.className = 'whoami-card-text';
+        text.textContent = card;
+        sub.appendChild(text);
+      } else if (!player.whoamiImage) {
+        sub.textContent = 'карточка не указана';
+      }
     }
     main.appendChild(sub);
 
@@ -2000,16 +2004,24 @@ function renderWhoamiLobbyList() {
 
     if (player.id === state.myId) {
       sub.textContent = 'карточка скрыта';
-    } else if (player.whoamiImage) {
-      const img = document.createElement('img');
-      img.src = player.whoamiImage;
-      img.alt = 'карточка';
-      img.className = 'whoami-card-image';
-      sub.textContent = '';
-      sub.appendChild(img);
     } else {
+      sub.textContent = '';
+      if (player.whoamiImage) {
+        const img = document.createElement('img');
+        img.src = player.whoamiImage;
+        img.alt = 'карточка';
+        img.className = 'whoami-card-image';
+        sub.appendChild(img);
+      }
       const card = String(player.whoamiCard || '').trim();
-      sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
+      if (card) {
+        const text = document.createElement('span');
+        text.className = 'whoami-card-text';
+        text.textContent = card;
+        sub.appendChild(text);
+      } else if (!player.whoamiImage) {
+        sub.textContent = 'карточка не указана';
+      }
     }
 
     main.appendChild(name);
@@ -3640,6 +3652,30 @@ async function leaveRoom() {
   setVisible('join');
 }
 
+async function clearRoom() {
+  if (!state.db || !state.roomCode) return;
+  if (!canCurrentPlayerStartRound()) {
+    lobbyStatus.textContent = 'Только первый вошедший в лобби может очистить комнату.';
+    return;
+  }
+  const ok = window.confirm('Очистить комнату? Все данные комнаты будут удалены.');
+  if (!ok) return;
+  try {
+    const deleteAllFrom = async (colRef) => {
+      const snapshot = await getDocs(colRef);
+      await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+    };
+    await deleteAllFrom(collection(state.db, 'rooms', state.roomCode, 'players'));
+    await deleteAllFrom(collection(state.db, 'rooms', state.roomCode, 'votes'));
+    await deleteAllFrom(collection(state.db, 'rooms', state.roomCode, 'chat'));
+    await deleteDoc(roomRef());
+    showGlobalStatus('Комната очищена.', 'ok');
+    await leaveRoom();
+  } catch (error) {
+    showGlobalStatus(`Ошибка очистки: ${error.message}`, 'error');
+  }
+}
+
 async function initFirebase() {
   const firebaseConfig = window.FIREBASE_CONFIG || null;
   if (!hasValidFirebaseConfig(firebaseConfig)) {
@@ -3819,6 +3855,9 @@ if (whoamiGuessBtn) {
       gameStatus.textContent = `Ошибка: ${error.message}`;
     }
   });
+}
+if (clearRoomBtn) {
+  clearRoomBtn.addEventListener('click', clearRoom);
 }
 if (chatInput) {
   chatInput.addEventListener('keydown', (event) => {
