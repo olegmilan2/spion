@@ -806,6 +806,8 @@ const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
 const LOCAL_REAL_NAME_KEY = 'spy_real_name';
 const AVATAR_MAX_BYTES = 90 * 1024;
 const AVATAR_MAX_SIDE = 192;
+const WHOAMI_MAX_BYTES = 180 * 1024;
+const WHOAMI_MAX_SIDE = 320;
 const CATEGORY_LABELS = {
   all: 'все',
   general: 'общее',
@@ -1430,6 +1432,10 @@ function renderTopAvatar(target, avatarUrl, name) {
 }
 
 async function imageFileToDataUrl(file) {
+  return imageFileToDataUrlWithLimits(file, AVATAR_MAX_BYTES, AVATAR_MAX_SIDE);
+}
+
+async function imageFileToDataUrlWithLimits(file, maxBytes, maxSide) {
   if (!file || !String(file.type || '').startsWith('image/')) {
     throw new Error('Выбери файл изображения');
   }
@@ -1461,8 +1467,8 @@ async function imageFileToDataUrl(file) {
   const qualitySteps = [0.78, 0.68, 0.58, 0.5];
 
   for (const sideFactor of sideFactors) {
-    const maxSide = Math.max(64, Math.round(AVATAR_MAX_SIDE * sideFactor));
-    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const targetSide = Math.max(64, Math.round(maxSide * sideFactor));
+    const scale = Math.min(1, targetSide / Math.max(image.width, image.height));
     const w = Math.max(1, Math.round(image.width * scale));
     const h = Math.max(1, Math.round(image.height * scale));
     const canvas = document.createElement('canvas');
@@ -1474,13 +1480,13 @@ async function imageFileToDataUrl(file) {
     for (const quality of qualitySteps) {
       const candidate = canvas.toDataURL('image/jpeg', quality);
       bestCandidate = candidate;
-      if (estimateDataUrlBytes(candidate) <= AVATAR_MAX_BYTES) {
+      if (estimateDataUrlBytes(candidate) <= maxBytes) {
         return candidate;
       }
     }
   }
 
-  if (bestCandidate && estimateDataUrlBytes(bestCandidate) <= AVATAR_MAX_BYTES) {
+  if (bestCandidate && estimateDataUrlBytes(bestCandidate) <= maxBytes) {
     return bestCandidate;
   }
   throw new Error('Изображение слишком большое. Выбери более простую картинку.');
@@ -1766,6 +1772,9 @@ async function assignWhoamiCard(targetId, value) {
       whoamiCard: card,
       whoamiCardAuthorId: state.myId,
       whoamiCardAuthorName: state.myName,
+      whoamiImage: deleteField(),
+      whoamiImageAuthorId: deleteField(),
+      whoamiImageAuthorName: deleteField(),
       lastSeenAt: serverTimestamp()
     });
     await updateDoc(playerRef(state.myId), {
@@ -1775,6 +1784,38 @@ async function assignWhoamiCard(targetId, value) {
     if (whoamiStatus) whoamiStatus.textContent = 'Карточка сохранена.';
   } catch (error) {
     if (whoamiStatus) whoamiStatus.textContent = `Ошибка сохранения: ${error.message}`;
+  }
+}
+
+async function assignWhoamiImage(targetId, file) {
+  if (!state.db || !state.roomCode) return;
+  if (!isWhoamiGame(state.roomData)) return;
+  if (state.roomData && state.roomData.state !== 'lobby') {
+    if (whoamiStatus) whoamiStatus.textContent = 'Карточки можно менять только в лобби.';
+    return;
+  }
+  if (!targetId || targetId === state.myId) {
+    if (whoamiStatus) whoamiStatus.textContent = 'Выбери другого игрока.';
+    return;
+  }
+  try {
+    const dataUrl = await imageFileToDataUrlWithLimits(file, WHOAMI_MAX_BYTES, WHOAMI_MAX_SIDE);
+    await updateDoc(playerRef(targetId), {
+      whoamiImage: dataUrl,
+      whoamiImageAuthorId: state.myId,
+      whoamiImageAuthorName: state.myName,
+      whoamiCard: deleteField(),
+      whoamiCardAuthorId: deleteField(),
+      whoamiCardAuthorName: deleteField(),
+      lastSeenAt: serverTimestamp()
+    });
+    await updateDoc(playerRef(state.myId), {
+      whoamiAssignedTo: targetId,
+      lastSeenAt: serverTimestamp()
+    });
+    if (whoamiStatus) whoamiStatus.textContent = 'Фото сохранено.';
+  } catch (error) {
+    if (whoamiStatus) whoamiStatus.textContent = `Ошибка фото: ${error.message}`;
   }
 }
 
@@ -1882,6 +1923,13 @@ function renderWhoamiPanel() {
     sub.className = 'player-sub';
     if (player.id === state.myId) {
       sub.textContent = 'карточка скрыта';
+    } else if (player.whoamiImage) {
+      const img = document.createElement('img');
+      img.src = player.whoamiImage;
+      img.alt = 'карточка';
+      img.className = 'whoami-card-image';
+      sub.textContent = '';
+      sub.appendChild(img);
     } else {
       const card = String(player.whoamiCard || '').trim();
       sub.textContent = card ? card : 'карточка не указана';
@@ -1952,6 +2000,13 @@ function renderWhoamiLobbyList() {
 
     if (player.id === state.myId) {
       sub.textContent = 'карточка скрыта';
+    } else if (player.whoamiImage) {
+      const img = document.createElement('img');
+      img.src = player.whoamiImage;
+      img.alt = 'карточка';
+      img.className = 'whoami-card-image';
+      sub.textContent = '';
+      sub.appendChild(img);
     } else {
       const card = String(player.whoamiCard || '').trim();
       sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
@@ -1996,6 +2051,27 @@ function renderWhoamiLobbyList() {
       });
       editor.appendChild(input);
       editor.appendChild(saveBtn);
+
+      const uploadWrap = document.createElement('div');
+      uploadWrap.className = 'whoami-upload';
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.className = 'hidden-file-input';
+      const uploadBtn = document.createElement('button');
+      uploadBtn.type = 'button';
+      uploadBtn.className = 'btn';
+      uploadBtn.textContent = 'Фото';
+      uploadBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        assignWhoamiImage(player.id, file);
+        fileInput.value = '';
+      });
+      uploadWrap.appendChild(uploadBtn);
+      uploadWrap.appendChild(fileInput);
+      editor.appendChild(uploadWrap);
       li.appendChild(editor);
 
       li.classList.add('clickable');
@@ -2623,7 +2699,8 @@ function renderRoom() {
     if (isWhoami) {
       const cardsReady = state.players.filter((player) => {
         const card = String(player.whoamiCard || '').trim();
-        return isPlayerActive(player) && card.length > 0 && player.whoamiCardAuthorId && player.whoamiCardAuthorId !== player.id;
+        const hasImage = Boolean(player.whoamiImage);
+        return isPlayerActive(player) && (hasImage || card.length > 0) && (player.whoamiCardAuthorId || player.whoamiImageAuthorId) && (player.whoamiCardAuthorId !== player.id) && (player.whoamiImageAuthorId !== player.id);
       }).length;
       lobbyStatus.textContent = activeCount >= 2
         ? `Готово к старту. Игроков: ${activeCount}. Карточки: ${cardsReady}/${activeCount}. Режим: кто я.`
@@ -2822,7 +2899,8 @@ function subscribeRoom() {
         if (gameType === 'whoami') {
           const cardsReady = state.players.filter((player) => {
             const card = String(player.whoamiCard || '').trim();
-            return isPlayerActive(player) && card.length > 0 && player.whoamiCardAuthorId && player.whoamiCardAuthorId !== player.id;
+            const hasImage = Boolean(player.whoamiImage);
+            return isPlayerActive(player) && (hasImage || card.length > 0) && (player.whoamiCardAuthorId || player.whoamiImageAuthorId) && (player.whoamiCardAuthorId !== player.id) && (player.whoamiImageAuthorId !== player.id);
           }).length;
           lobbyStatus.textContent = activeCount >= 2
             ? `Готово к старту. Игроков: ${activeCount}. Карточки: ${cardsReady}/${activeCount}. Режим: кто я.`
@@ -3133,7 +3211,10 @@ async function startRound() {
   if (gameType === 'whoami') {
     const missingCards = eligiblePlayers.filter((player) => {
       const card = String(player.whoamiCard || '').trim();
-      return card.length === 0 || player.whoamiCardAuthorId === player.id;
+      const hasImage = Boolean(player.whoamiImage);
+      const hasAuthor = player.whoamiCardAuthorId || player.whoamiImageAuthorId;
+      const selfAuthored = (player.whoamiCardAuthorId === player.id) || (player.whoamiImageAuthorId === player.id);
+      return (!hasImage && card.length === 0) || !hasAuthor || selfAuthored;
     });
     if (missingCards.length > 0) {
       lobbyStatus.textContent = `Не все получили карточки: ${missingCards.length}/${eligiblePlayers.length}.`;
@@ -3360,7 +3441,10 @@ async function resetRound() {
   if (gameType === 'whoami') {
     const missingCards = eligiblePlayers.filter((player) => {
       const card = String(player.whoamiCard || '').trim();
-      return card.length === 0 || player.whoamiCardAuthorId === player.id;
+      const hasImage = Boolean(player.whoamiImage);
+      const hasAuthor = player.whoamiCardAuthorId || player.whoamiImageAuthorId;
+      const selfAuthored = (player.whoamiCardAuthorId === player.id) || (player.whoamiImageAuthorId === player.id);
+      return (!hasImage && card.length === 0) || !hasAuthor || selfAuthored;
     });
     if (missingCards.length > 0) {
       gameStatus.textContent = `Не все получили карточки: ${missingCards.length}/${eligiblePlayers.length}.`;
@@ -3416,6 +3500,9 @@ async function resetRound() {
             whoamiCard: deleteField(),
             whoamiCardAuthorId: deleteField(),
             whoamiCardAuthorName: deleteField(),
+            whoamiImage: deleteField(),
+            whoamiImageAuthorId: deleteField(),
+            whoamiImageAuthorName: deleteField(),
             whoamiAssignedTo: deleteField(),
             lastSeenAt: serverTimestamp()
           }).catch(() => {})
