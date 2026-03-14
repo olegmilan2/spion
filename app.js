@@ -803,6 +803,7 @@ const LOCAL_GAME_VARIANT_KEY = 'spy_game_variant';
 const LOCAL_GAME_TYPE_KEY = 'spy_game_type';
 const LOCAL_CATEGORY_KEY = 'spy_location_category';
 const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
+const LOCAL_REAL_NAME_KEY = 'spy_real_name';
 const AVATAR_MAX_BYTES = 90 * 1024;
 const AVATAR_MAX_SIDE = 192;
 const CATEGORY_LABELS = {
@@ -832,6 +833,7 @@ const lobbyCard = document.getElementById('lobbyCard');
 const gameCard = document.getElementById('gameCard');
 
 const nameInput = document.getElementById('nameInput');
+const nicknameInput = document.getElementById('nicknameInput');
 const avatarPickerBtn = document.getElementById('avatarPickerBtn');
 const avatarFileInput = document.getElementById('avatarFileInput');
 const avatarPreview = document.getElementById('avatarPreview');
@@ -917,6 +919,7 @@ const state = {
   authUid: '',
   myId: localStorage.getItem(LOCAL_MY_ID_KEY) || crypto.randomUUID(),
   myName: localStorage.getItem(LOCAL_NAME_KEY) || '',
+  myRealName: localStorage.getItem(LOCAL_REAL_NAME_KEY) || '',
   myAvatar: localStorage.getItem(LOCAL_AVATAR_KEY) || '',
   roomCode: localStorage.getItem(LOCAL_ROOM_KEY) || '',
   expectedPlayers: Number(localStorage.getItem(LOCAL_EXPECTED_KEY) || 3),
@@ -2675,7 +2678,7 @@ function presenceRef(uid) {
 }
 
 function currentPresenceName() {
-  const inputName = nameInput ? nameInput.value.trim() : '';
+  const inputName = nicknameInput ? nicknameInput.value.trim() : '';
   return inputName || state.myName || 'Гость';
 }
 
@@ -2990,6 +2993,7 @@ async function ensureRoomAndJoin() {
 
 async function joinRoom() {
   const name = nameInput.value.trim();
+  const nickname = nicknameInput ? nicknameInput.value.trim() : '';
   const code = normalizeRoomCode(roomCodeInput.value);
   const gameType = gameTypeInput.value === 'whoami' ? 'whoami' : 'spy';
   const expected = Number(expectedPlayersInput.value);
@@ -3005,6 +3009,11 @@ async function joinRoom() {
   }
 
   if (!name) {
+    joinError.textContent = 'Введи имя.';
+    return;
+  }
+
+  if (!nickname) {
     joinError.textContent = 'Введи ник.';
     return;
   }
@@ -3049,7 +3058,8 @@ async function joinRoom() {
   }
 
   joinError.textContent = '';
-  state.myName = name;
+  state.myName = nickname;
+  state.myRealName = name;
   state.roomCode = code;
   state.gameType = gameType;
   state.expectedPlayers = expected;
@@ -3060,6 +3070,7 @@ async function joinRoom() {
   state.locationDifficulty = difficulty;
   syncCopyRoomButtons();
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
+  localStorage.setItem(LOCAL_REAL_NAME_KEY, state.myRealName);
   localStorage.setItem(LOCAL_AVATAR_KEY, state.myAvatar);
   localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
   localStorage.setItem(LOCAL_GAME_TYPE_KEY, state.gameType);
@@ -3552,7 +3563,10 @@ async function initFirebase() {
 }
 
 function restoreInputs() {
-  nameInput.value = state.myName;
+  nameInput.value = state.myRealName || '';
+  if (nicknameInput) {
+    nicknameInput.value = state.myName || '';
+  }
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
   setGameTypeUI(state.gameType);
@@ -3605,12 +3619,23 @@ if (roleRevealCard) {
 }
 nameInput.addEventListener('input', () => {
   if (!state.myAvatar) {
-    renderAvatarPreview('', nameInput.value.trim());
+    renderAvatarPreview('', (nicknameInput?.value || '').trim() || nameInput.value.trim());
   }
 });
-nameInput.addEventListener('change', () => {
-  updateGlobalPresenceProfile();
-});
+if (nicknameInput) {
+  nicknameInput.addEventListener('input', () => {
+    if (!state.myAvatar) {
+      renderAvatarPreview('', nicknameInput.value.trim());
+    }
+  });
+  nicknameInput.addEventListener('change', () => {
+    updateGlobalPresenceProfile();
+  });
+} else {
+  nameInput.addEventListener('change', () => {
+    updateGlobalPresenceProfile();
+  });
+}
 if (spyCountGrid) {
   spyCountGrid.querySelectorAll('.mode-cell').forEach((cell) => {
     cell.addEventListener('click', () => {
