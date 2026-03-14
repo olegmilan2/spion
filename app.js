@@ -1745,9 +1745,8 @@ function renderPlayers() {
   });
 }
 
-function isWhoamiGame(room = state.roomData) {
-  const gameType = room?.gameType || state.gameType || 'spy';
-  return gameType === 'whoami';
+function isWhoamiGame() {
+  return false;
 }
 
 async function assignWhoamiCard(targetId, value) {
@@ -2580,8 +2579,8 @@ function renderRoom() {
   const roomSpyCount = Number(room.spyCount || state.spyCount || 1);
   const roomSpyMode = room.spyMode || state.spyMode || 'blind';
   const roomGameVariant = room.gameVariant || state.gameVariant || 'classic';
-  const roomGameType = room.gameType || state.gameType || 'spy';
-  const isWhoami = roomGameType === 'whoami';
+  const roomGameType = 'spy';
+  const isWhoami = false;
   const roomQuickQuestions = Array.isArray(room.quickQuestions) && room.quickQuestions.length > 0
     ? room.quickQuestions
     : QUICK_QUESTIONS;
@@ -2898,7 +2897,7 @@ function subscribeRoom() {
         const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
         const spyMode = state.roomData.spyMode || state.spyMode || 'blind';
         const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
-        const gameType = state.roomData.gameType || state.gameType || 'spy';
+        const gameType = 'spy';
         const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
         const gameVariantLabel = gameVariant === 'hide'
           ? 'прятки на виду'
@@ -2999,8 +2998,8 @@ async function ensureRoomAndJoin() {
       });
     } else {
       const data = snap.data();
-      const hasGameType = typeof data.gameType === 'string';
-      const currentGameType = hasGameType ? data.gameType : (state.gameType || 'spy');
+      const hasGameType = typeof data.gameType === 'string' && data.gameType !== 'whoami';
+      const currentGameType = hasGameType ? data.gameType : 'spy';
       const currentExpected = Number(data.expectedPlayers || 3);
       const currentSpyCount = Number(data.spyCount || 1);
       const currentSpyMode = data.spyMode || 'blind';
@@ -3099,7 +3098,7 @@ async function joinRoom() {
   const name = nameInput.value.trim();
   const nickname = nicknameInput ? nicknameInput.value.trim() : '';
   const code = normalizeRoomCode(roomCodeInput.value);
-  const gameType = gameTypeInput.value === 'whoami' ? 'whoami' : 'spy';
+  const gameType = 'spy';
   const expected = Number(expectedPlayersInput.value);
   const spyCount = Number(spyCountInput.value);
   const spyMode = spyModeInput.value;
@@ -3209,7 +3208,7 @@ async function startRound() {
 
   const eligiblePlayers = state.players.filter(isPlayerActive);
   const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
-  const gameType = state.roomData.gameType || state.gameType || 'spy';
+  const gameType = 'spy';
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
   if (gameType === 'spy' && eligiblePlayers.length !== expected) {
@@ -3439,7 +3438,7 @@ async function resetRound() {
 
   const eligiblePlayers = state.players.filter(isPlayerActive);
   const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
-  const gameType = state.roomData.gameType || state.gameType || 'spy';
+  const gameType = 'spy';
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
   if (gameType === 'spy' && eligiblePlayers.length !== expected) {

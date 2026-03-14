@@ -29,17 +29,6 @@
         </button>
       </div>
       <input id="avatarFileInput" class="hidden-file-input" type="file" accept="image/*">
-      <p class="label">Игра</p>
-      <div id="gameTypeGrid" class="mode-grid game-type-grid">
-        <button type="button" class="mode-cell active" data-game-type="spy">
-          <strong>Шпион</strong>
-          <span>Классическая мафия про шпиона</span>
-        </button>
-        <button type="button" class="mode-cell" data-game-type="whoami">
-          <strong>Кто я?</strong>
-          <span>Каждый видит чужую карточку</span>
-        </button>
-      </div>
       <input id="gameTypeInput" type="hidden" value="spy">
       <label for="nameInput" class="label">Имя</label>
       <input id="nameInput" type="text" maxlength="32" placeholder="Например: Олег">
@@ -151,12 +140,6 @@
         <p class="hint">Игроки в комнате: <span id="roomOnlineCount">0</span></p>
         <ul id="playersList" class="players-list"></ul>
       </div>
-      <div id="whoamiLobby" class="whoami-lobby hidden">
-        <p class="hint">Выбери игрока и напиши ему карточку:</p>
-        <p id="whoamiStatus" class="hint"></p>
-        <p class="hint">Карточки игроков (нажми карточку и впиши персонажа):</p>
-        <ul id="whoamiLobbyList" class="players-list"></ul>
-      </div>
       <div class="actions">
         <button id="startRoundBtn" class="btn btn-primary">Старт раунда</button>
         <button id="leaveRoomBtn" class="btn">Выйти</button>
@@ -180,11 +163,6 @@
       <h2 id="gameTitle">Роль</h2>
       <div id="roleCard" class="role-card"></div>
       <p id="roleHint" class="hint"></p>
-      <div id="whoamiPanel" class="whoami-panel hidden">
-        <p class="hint">Карточки других игроков:</p>
-        <ul id="whoamiList" class="players-list"></ul>
-        <button id="whoamiGuessBtn" class="btn" type="button">Я угадал свою карточку</button>
-      </div>
       <div id="globalOnlineSection">
         <p class="hint">Онлайн в игре: <span id="globalOnlineCount">0</span></p>
         <ul id="globalPlayersList" class="players-list"></ul>
@@ -239,7 +217,7 @@
   </div>
 
   <script src="./firebase-config.js"></script>
-  <script type="module" src="./app.js?v=20260314-12"></script>
+  <script type="module" src="./app.js?v=20260314-13"></script>
   <script src="./pwa.js?v=20260302-1" defer></script>
 </body>
 </html>
