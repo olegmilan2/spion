@@ -2311,8 +2311,9 @@ function formatChatTime(value) {
 }
 
 function renderChat() {
+  if (!chatPanel || !chatMessages) return;
   if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) {
-    chatPanel.classList.add('hidden');
+    if (chatPanel) chatPanel.classList.add('hidden');
     return;
   }
 
@@ -2444,6 +2445,7 @@ function addNote() {
 }
 
 async function sendChatMessage() {
+  if (!chatInput) return;
   const text = chatInput.value.trim();
   if (!text) return;
   if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) return;
@@ -3697,7 +3699,9 @@ avatarFileInput.addEventListener('change', async () => {
     showGlobalStatus(`Ошибка загрузки аватара: ${error.message}`, 'error');
   }
 });
-chatSendBtn.addEventListener('click', sendChatMessage);
+if (chatSendBtn) {
+  chatSendBtn.addEventListener('click', sendChatMessage);
+}
 roleRevealBtn.addEventListener('click', hideRoleReveal);
 if (notesAddBtn) {
   notesAddBtn.addEventListener('click', addNote);
@@ -3729,12 +3733,14 @@ if (whoamiGuessBtn) {
     }
   });
 }
-chatInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    sendChatMessage();
-  }
-});
+if (chatInput) {
+  chatInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      sendChatMessage();
+    }
+  });
+}
 
 document.addEventListener('click', (event) => {
   const tapTarget = event.target.closest(
