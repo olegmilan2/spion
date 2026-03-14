@@ -3698,9 +3698,28 @@ async function clearAllRooms() {
       await deleteAllFrom(['rooms', roomId, 'players']);
       await deleteAllFrom(['rooms', roomId, 'votes']);
       await deleteAllFrom(['rooms', roomId, 'chat']);
-      await deleteDoc(doc(state.db, 'rooms', roomId));
+      await updateDoc(doc(state.db, 'rooms', roomId), {
+        state: 'lobby',
+        spyIds: [],
+        spyUids: [],
+        spyActions: {},
+        civilianRoles: {},
+        location: deleteField(),
+        lastLocation: deleteField(),
+        locationHistory: deleteField(),
+        eliminatedPlayerId: deleteField(),
+        eliminatedPlayerName: deleteField(),
+        lastVoteResult: deleteField(),
+        winner: deleteField(),
+        foundSpyIds: [],
+        voteStage: deleteField(),
+        resolvedVoteStage: deleteField(),
+        startedBy: deleteField(),
+        startedAt: deleteField(),
+        updatedAt: serverTimestamp()
+      });
     }
-    showGlobalStatus('Все комнаты очищены.', 'ok');
+    showGlobalStatus('Все комнаты очищены: участники удалены, комнаты в лобби.', 'ok');
   } catch (error) {
     showGlobalStatus(`Ошибка очистки всех комнат: ${error.message}`, 'error');
   }
