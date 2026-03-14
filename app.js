@@ -935,7 +935,8 @@ const state = {
   globalPresenceTimerId: null,
   lastRevealToken: '',
   recoveringRoom: false,
-  quickQuestions: []
+  quickQuestions: [],
+  whoamiDrafts: {}
 };
 
 const QUICK_QUESTIONS = [
@@ -1827,6 +1828,12 @@ function renderWhoamiPanel() {
 
 function renderWhoamiLobbyList() {
   if (!whoamiLobbyList) return;
+  const activeInput = whoamiLobbyList.querySelector('input:focus');
+  const activeTargetId = activeInput?.dataset?.targetId || '';
+  const activeValue = activeInput?.value;
+  if (activeTargetId && typeof activeValue === 'string') {
+    state.whoamiDrafts[activeTargetId] = activeValue;
+  }
   whoamiLobbyList.innerHTML = '';
   if (state.players.length === 0) {
     const li = document.createElement('li');
@@ -1894,7 +1901,12 @@ function renderWhoamiLobbyList() {
       input.type = 'text';
       input.maxLength = 48;
       input.placeholder = 'Напиши персонажа';
-      input.value = String(player.whoamiCard || '');
+      input.dataset.targetId = player.id;
+      const draft = state.whoamiDrafts[player.id];
+      input.value = typeof draft === 'string' ? draft : String(player.whoamiCard || '');
+      input.addEventListener('input', () => {
+        state.whoamiDrafts[player.id] = input.value;
+      });
       const saveBtn = document.createElement('button');
       saveBtn.type = 'button';
       saveBtn.className = 'btn';
@@ -1915,6 +1927,14 @@ function renderWhoamiLobbyList() {
 
     whoamiLobbyList.appendChild(li);
   });
+  if (activeTargetId) {
+    const restored = whoamiLobbyList.querySelector(`input[data-target-id="${activeTargetId}"]`);
+    if (restored) {
+      restored.focus();
+      const len = restored.value.length;
+      restored.setSelectionRange(len, len);
+    }
+  }
 }
 
 function renderGlobalPresence() {
