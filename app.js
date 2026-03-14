@@ -1787,7 +1787,7 @@ function renderWhoamiList(targetEl) {
 
   sorted.forEach((player) => {
     const li = document.createElement('li');
-    li.className = 'player-item';
+    li.className = 'player-item whoami-card';
 
     const avatar = document.createElement('span');
     avatar.className = 'player-avatar';
