@@ -1923,6 +1923,18 @@ function renderWhoamiLobbyList() {
       editor.appendChild(input);
       editor.appendChild(saveBtn);
       li.appendChild(editor);
+
+      li.classList.add('clickable');
+      li.addEventListener('click', (event) => {
+        const target = event.target;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'BUTTON')) return;
+        const current = String(input.value || '').trim();
+        const next = window.prompt(`Карточка для ${player.name || 'игрока'}`, current);
+        if (next === null) return;
+        input.value = next;
+        state.whoamiDrafts[player.id] = next;
+        assignWhoamiCard(player.id, next);
+      });
     }
 
     whoamiLobbyList.appendChild(li);
