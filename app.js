@@ -2113,13 +2113,17 @@ function renderWhoamiLobbyList() {
 
 function renderGlobalPresence() {
   if (!globalPlayersList) return;
+  if (mainOnlineCount) {
+    const activePlayers = state.globalPlayers.filter(isPlayerActive);
+    mainOnlineCount.textContent = String(activePlayers.length);
+  }
+  if (gameCard && !gameCard.classList.contains('hidden')) {
+    return;
+  }
   globalPlayersList.innerHTML = '';
   const activePlayers = state.globalPlayers.filter(isPlayerActive);
   if (globalOnlineCount) {
     globalOnlineCount.textContent = String(activePlayers.length);
-  }
-  if (mainOnlineCount) {
-    mainOnlineCount.textContent = String(activePlayers.length);
   }
 
   if (activePlayers.length === 0) {
@@ -2157,6 +2161,61 @@ function renderGlobalPresence() {
     const sub = document.createElement('p');
     sub.className = 'player-sub';
     sub.textContent = 'в игре';
+    main.appendChild(name);
+    main.appendChild(sub);
+
+    const badge = document.createElement('span');
+    badge.className = `player-badge${status === 'оффлайн' ? ' offline' : ''}`;
+    badge.textContent = status;
+
+    li.appendChild(avatar);
+    li.appendChild(main);
+    li.appendChild(badge);
+    globalPlayersList.appendChild(li);
+  });
+}
+
+function renderRoomOnlineList() {
+  if (!globalPlayersList) return;
+  globalPlayersList.innerHTML = '';
+  const activePlayers = state.players.filter(isPlayerActive);
+  if (globalOnlineCount) {
+    globalOnlineCount.textContent = String(activePlayers.length);
+  }
+  if (activePlayers.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'player-item empty';
+    li.textContent = 'Пока нет игроков';
+    globalPlayersList.appendChild(li);
+    return;
+  }
+  activePlayers.forEach((player) => {
+    const li = document.createElement('li');
+    li.className = 'player-item';
+    const status = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'player-avatar';
+    if (player.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = player.avatarUrl;
+      img.alt = player.name || 'avatar';
+      img.addEventListener('error', () => {
+        avatar.textContent = getInitials(player.name);
+      });
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getInitials(player.name);
+    }
+
+    const main = document.createElement('div');
+    main.className = 'player-main';
+    const name = document.createElement('p');
+    name.className = 'player-name';
+    name.textContent = player.id === state.myId ? `${player.name} (ты)` : player.name;
+    const sub = document.createElement('p');
+    sub.className = 'player-sub';
+    sub.textContent = player.eliminated === true ? 'ожидание до нового раунда' : 'в игре';
     main.appendChild(name);
     main.appendChild(sub);
 
@@ -2687,6 +2746,7 @@ function renderRoom() {
     renderQuickQuestions();
     renderChat();
     if (notesPanel) notesPanel.classList.add('hidden');
+    renderRoomOnlineList();
   } else {
     setVisible('lobby');
     if (lobbyCard) lobbyCard.classList.toggle('whoami', isWhoami);
