@@ -2598,6 +2598,7 @@ function renderRoom() {
     renderNotes();
   } else {
     setVisible('lobby');
+    if (lobbyCard) lobbyCard.classList.toggle('whoami', isWhoami);
     hideRoleReveal();
     startRoundBtn.disabled = !canCurrentPlayerStartRound();
     roundAlert.className = 'round-alert hidden';
@@ -2624,11 +2625,13 @@ function renderRoom() {
       lobbyStatus.textContent = activeCount >= 2
         ? `Готово к старту. Игроков: ${activeCount}. Карточки: ${cardsReady}/${activeCount}. Режим: кто я.`
         : `Нужно минимум 2 игрока. Сейчас: ${activeCount}. Карточки: ${cardsReady}/${activeCount}.`;
+      if (lobbyCard) lobbyCard.classList.add('whoami');
       if (roomPlayersSection) roomPlayersSection.classList.add('hidden');
     } else {
       lobbyStatus.textContent = activeCount === expected
         ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
         : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`;
+      if (lobbyCard) lobbyCard.classList.remove('whoami');
       if (roomPlayersSection) roomPlayersSection.classList.remove('hidden');
     }
     if (whoamiLobby) {
@@ -2824,6 +2827,7 @@ function subscribeRoom() {
           if (whoamiLobby) {
             whoamiLobby.classList.remove('hidden');
           }
+          if (lobbyCard) lobbyCard.classList.add('whoami');
           if (roomPlayersSection) roomPlayersSection.classList.add('hidden');
         } else {
           lobbyStatus.textContent = activeCount === expected
@@ -2832,6 +2836,7 @@ function subscribeRoom() {
           if (whoamiLobby) {
             whoamiLobby.classList.add('hidden');
           }
+          if (lobbyCard) lobbyCard.classList.remove('whoami');
           if (roomPlayersSection) roomPlayersSection.classList.remove('hidden');
         }
       }

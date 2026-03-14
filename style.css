@@ -896,6 +896,10 @@ select:focus {
   gap: 8px;
 }
 
+.lobby-card.whoami #roomPlayersSection {
+  display: none;
+}
+
 .whoami-card-label {
   margin: 0 0 2px;
   font-size: 13px;
