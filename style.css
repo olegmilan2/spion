@@ -869,6 +869,19 @@ select:focus {
   box-shadow: 0 14px 26px rgba(15, 23, 42, 0.14);
 }
 
+.whoami-card-wrap {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.whoami-card-label {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .whoami-card.clickable {
   cursor: pointer;
 }

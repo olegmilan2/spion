@@ -1848,7 +1848,15 @@ function renderWhoamiPanel() {
 
   sorted.forEach((player) => {
     const li = document.createElement('li');
-    li.className = 'player-item';
+    li.className = 'whoami-card-wrap';
+
+    const label = document.createElement('p');
+    label.className = 'whoami-card-label';
+    label.textContent = player.id === state.myId ? `${player.name} (ты)` : (player.name || 'Игрок');
+    li.appendChild(label);
+
+    const card = document.createElement('div');
+    card.className = 'player-item whoami-card';
 
     const avatar = document.createElement('span');
     avatar.className = 'player-avatar';
@@ -1866,9 +1874,6 @@ function renderWhoamiPanel() {
 
     const main = document.createElement('div');
     main.className = 'player-main';
-    const name = document.createElement('p');
-    name.className = 'player-name';
-    name.textContent = player.id === state.myId ? `${player.name} (ты)` : (player.name || 'Игрок');
     const sub = document.createElement('p');
     sub.className = 'player-sub';
     if (player.id === state.myId) {
@@ -1877,16 +1882,16 @@ function renderWhoamiPanel() {
       const card = String(player.whoamiCard || '').trim();
       sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
     }
-    main.appendChild(name);
     main.appendChild(sub);
 
     const badge = document.createElement('span');
     badge.className = `player-badge${isPlayerActive(player) ? '' : ' offline'}`;
     badge.textContent = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
 
-    li.appendChild(avatar);
-    li.appendChild(main);
-    li.appendChild(badge);
+    card.appendChild(avatar);
+    card.appendChild(main);
+    card.appendChild(badge);
+    li.appendChild(card);
     whoamiList.appendChild(li);
   });
 }
