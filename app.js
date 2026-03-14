@@ -848,6 +848,7 @@ const difficultyInput = document.getElementById('difficultyInput');
 const joinBtn = document.getElementById('joinBtn');
 const joinError = document.getElementById('joinError');
 const globalStatus = document.getElementById('globalStatus');
+const mainOnlineCount = document.getElementById('mainOnlineCount');
 
 const lobbyRoomText = document.getElementById('lobbyRoomText');
 const lobbyCopyRoomBtn = document.getElementById('lobbyCopyRoomBtn');
@@ -855,6 +856,7 @@ const roundText = document.getElementById('roundText');
 const lobbyTopAvatar = document.getElementById('lobbyTopAvatar');
 const lobbyTopName = document.getElementById('lobbyTopName');
 const playersList = document.getElementById('playersList');
+const roomOnlineCount = document.getElementById('roomOnlineCount');
 const lobbyStatus = document.getElementById('lobbyStatus');
 const startRoundBtn = document.getElementById('startRoundBtn');
 const leaveRoomBtn = document.getElementById('leaveRoomBtn');
@@ -876,6 +878,8 @@ const chatInput = document.getElementById('chatInput');
 const chatSendBtn = document.getElementById('chatSendBtn');
 const quickQuestions = document.getElementById('quickQuestions');
 const quickQuestionsList = document.getElementById('quickQuestionsList');
+const globalPlayersList = document.getElementById('globalPlayersList');
+const globalOnlineCount = document.getElementById('globalOnlineCount');
 const gameStatus = document.getElementById('gameStatus');
 const showRoleCardBtn = document.getElementById('showRoleCardBtn');
 const newRoundBtn = document.getElementById('newRoundBtn');
@@ -904,13 +908,16 @@ const state = {
   locationDifficulty: localStorage.getItem(LOCAL_DIFFICULTY_KEY) || 'all',
   roomData: null,
   players: [],
+  globalPlayers: [],
   votes: [],
   chat: [],
   roomUnsub: null,
   playersUnsub: null,
   votesUnsub: null,
   chatUnsub: null,
+  presenceUnsub: null,
   presenceTimerId: null,
+  globalPresenceTimerId: null,
   lastRevealToken: '',
   recoveringRoom: false,
   quickQuestions: []
@@ -1604,6 +1611,9 @@ function renderPlayers() {
   playersList.innerHTML = '';
   const showOnlyActive = !state.roomData || state.roomData.state === 'lobby';
   const playersToRender = showOnlyActive ? state.players.filter(isPlayerActive) : state.players;
+  if (roomOnlineCount) {
+    roomOnlineCount.textContent = String(playersToRender.length);
+  }
 
   if (playersToRender.length === 0) {
     const li = document.createElement('li');
@@ -1651,6 +1661,66 @@ function renderPlayers() {
     li.appendChild(main);
     li.appendChild(badge);
     playersList.appendChild(li);
+  });
+}
+
+function renderGlobalPresence() {
+  if (!globalPlayersList) return;
+  globalPlayersList.innerHTML = '';
+  const activePlayers = state.globalPlayers.filter(isPlayerActive);
+  if (globalOnlineCount) {
+    globalOnlineCount.textContent = String(activePlayers.length);
+  }
+  if (mainOnlineCount) {
+    mainOnlineCount.textContent = String(activePlayers.length);
+  }
+
+  if (activePlayers.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'player-item empty';
+    li.textContent = 'Пока нет онлайн игроков';
+    globalPlayersList.appendChild(li);
+    return;
+  }
+
+  activePlayers.forEach((player) => {
+    const li = document.createElement('li');
+    li.className = 'player-item';
+    const status = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'player-avatar';
+    if (player.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = player.avatarUrl;
+      img.alt = player.name || 'avatar';
+      img.addEventListener('error', () => {
+        avatar.textContent = getInitials(player.name);
+      });
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getInitials(player.name);
+    }
+
+    const main = document.createElement('div');
+    main.className = 'player-main';
+    const name = document.createElement('p');
+    name.className = 'player-name';
+    name.textContent = player.id === state.authUid ? `${player.name || 'Гость'} (ты)` : (player.name || 'Гость');
+    const sub = document.createElement('p');
+    sub.className = 'player-sub';
+    sub.textContent = 'в игре';
+    main.appendChild(name);
+    main.appendChild(sub);
+
+    const badge = document.createElement('span');
+    badge.className = `player-badge${status === 'оффлайн' ? ' offline' : ''}`;
+    badge.textContent = status;
+
+    li.appendChild(avatar);
+    li.appendChild(main);
+    li.appendChild(badge);
+    globalPlayersList.appendChild(li);
   });
 }
 
@@ -2129,6 +2199,58 @@ function chatMessageRef(messageId) {
   return doc(state.db, 'rooms', state.roomCode, 'chat', messageId);
 }
 
+function presenceRef(uid) {
+  return doc(state.db, 'presence', uid);
+}
+
+function currentPresenceName() {
+  const inputName = nameInput ? nameInput.value.trim() : '';
+  return inputName || state.myName || 'Гость';
+}
+
+function buildPresencePayload() {
+  return {
+    uid: state.authUid,
+    name: currentPresenceName(),
+    avatarUrl: state.myAvatar || '',
+    connected: true,
+    lastSeenAt: serverTimestamp()
+  };
+}
+
+function updateGlobalPresenceProfile() {
+  if (!state.db || !state.authUid) return;
+  setDoc(presenceRef(state.authUid), buildPresencePayload(), { merge: true }).catch(() => {});
+}
+
+function startGlobalPresence() {
+  if (!state.db || !state.authUid) return;
+  updateGlobalPresenceProfile();
+  if (state.globalPresenceTimerId) clearInterval(state.globalPresenceTimerId);
+  state.globalPresenceTimerId = setInterval(() => {
+    updateGlobalPresenceProfile();
+  }, 15000);
+}
+
+function subscribeGlobalPresence() {
+  if (!state.db) return;
+  if (state.presenceUnsub) {
+    state.presenceUnsub();
+    state.presenceUnsub = null;
+  }
+  const presenceQuery = query(collection(state.db, 'presence'), orderBy('lastSeenAt', 'desc'));
+  state.presenceUnsub = onSnapshot(
+    presenceQuery,
+    (snapshot) => {
+      state.globalPlayers = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+      renderGlobalPresence();
+    },
+    (error) => {
+      showGlobalStatus(`Ошибка presence snapshot: ${error.message}`, 'error');
+    }
+  );
+}
+
 async function recoverRoomToLobby() {
   if (!state.roomData || state.recoveringRoom) return;
   if (state.roomData.state !== 'started' && state.roomData.state !== 'finished') return;
@@ -2437,6 +2559,7 @@ async function joinRoom() {
   localStorage.setItem(LOCAL_GAME_VARIANT_KEY, state.gameVariant);
   localStorage.setItem(LOCAL_CATEGORY_KEY, state.locationCategory);
   localStorage.setItem(LOCAL_DIFFICULTY_KEY, state.locationDifficulty);
+  updateGlobalPresenceProfile();
 
   try {
     await ensureRoomAndJoin();
@@ -2750,6 +2873,8 @@ async function initFirebase() {
     const result = await signInAnonymously(auth);
     state.authUid = result.user.uid;
     state.firebaseReady = true;
+    startGlobalPresence();
+    subscribeGlobalPresence();
     showGlobalStatus('Firebase подключен.', 'ok');
   } catch (error) {
     showGlobalStatus(`Ошибка Firebase: ${error.message}`, 'error');
@@ -2812,6 +2937,9 @@ nameInput.addEventListener('input', () => {
     renderAvatarPreview('', nameInput.value.trim());
   }
 });
+nameInput.addEventListener('change', () => {
+  updateGlobalPresenceProfile();
+});
 if (spyCountGrid) {
   spyCountGrid.querySelectorAll('.mode-cell').forEach((cell) => {
     cell.addEventListener('click', () => {
@@ -2850,6 +2978,7 @@ avatarFileInput.addEventListener('change', async () => {
     const dataUrl = await imageFileToDataUrl(file);
     state.myAvatar = dataUrl;
     renderAvatarPreview(dataUrl, nameInput.value.trim() || state.myName);
+    updateGlobalPresenceProfile();
   } catch (error) {
     showGlobalStatus(`Ошибка загрузки аватара: ${error.message}`, 'error');
   }
@@ -2878,6 +3007,13 @@ window.addEventListener('beforeunload', () => {
       connected: false,
       lastSeenAt: serverTimestamp()
     }).catch(() => {});
+  }
+  if (state.db && state.authUid) {
+    setDoc(
+      presenceRef(state.authUid),
+      { connected: false, lastSeenAt: serverTimestamp() },
+      { merge: true }
+    ).catch(() => {});
   }
 });
 

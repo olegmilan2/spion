@@ -102,6 +102,7 @@
       <button id="joinBtn" class="btn btn-primary">Войти в комнату</button>
       <p id="joinError" class="error"></p>
       <p id="globalStatus" class="hint"></p>
+      <p class="hint">Онлайн в игре: <span id="mainOnlineCount">0</span></p>
     </section>
 
     <section class="card lobby-card hidden" id="lobbyCard">
@@ -117,7 +118,7 @@
         <p id="roundText">Раунд #1</p>
       </div>
       <h2>Лобби</h2>
-      <p class="hint">Игроки в комнате:</p>
+      <p class="hint">Игроки в комнате: <span id="roomOnlineCount">0</span></p>
       <ul id="playersList" class="players-list"></ul>
       <div class="actions">
         <button id="startRoundBtn" class="btn btn-primary">Старт раунда</button>
@@ -142,6 +143,8 @@
       <h2>Роль</h2>
       <div id="roleCard" class="role-card"></div>
       <p id="roleHint" class="hint"></p>
+      <p class="hint">Онлайн в игре: <span id="globalOnlineCount">0</span></p>
+      <ul id="globalPlayersList" class="players-list"></ul>
       <div id="votePanel" class="vote-panel">
         <p class="hint">Голосование: выбери подозреваемого.</p>
         <ul id="voteCandidates" class="vote-list"></ul>
