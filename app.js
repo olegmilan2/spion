@@ -2670,6 +2670,7 @@ function renderRoom() {
 
   if (room.state === 'started' || room.state === 'finished') {
     setVisible('game');
+    if (globalOnlineSection) globalOnlineSection.classList.add('hidden');
     roundAlert.className = 'round-alert hidden';
     roundAlert.textContent = '';
     const iAmEliminated = me?.eliminated === true;
@@ -2749,6 +2750,7 @@ function renderRoom() {
     renderRoomOnlineList();
   } else {
     setVisible('lobby');
+    if (globalOnlineSection) globalOnlineSection.classList.remove('hidden');
     if (lobbyCard) lobbyCard.classList.toggle('whoami', isWhoami);
     hideRoleReveal();
     startRoundBtn.disabled = !canCurrentPlayerStartRound();
