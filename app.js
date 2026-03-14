@@ -1823,7 +1823,66 @@ function renderWhoamiList(targetEl) {
 }
 
 function renderWhoamiPanel() {
-  renderWhoamiList(whoamiList);
+  if (!whoamiList) return;
+  whoamiList.innerHTML = '';
+  if (state.players.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'player-item empty';
+    li.textContent = 'Пока нет игроков';
+    whoamiList.appendChild(li);
+    return;
+  }
+
+  const sorted = [...state.players].sort((a, b) => {
+    const joinedA = toMillis(a.joinedAt);
+    const joinedB = toMillis(b.joinedAt);
+    if (joinedA !== joinedB) return joinedA - joinedB;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+
+  sorted.forEach((player) => {
+    const li = document.createElement('li');
+    li.className = 'player-item';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'player-avatar';
+    if (player.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = player.avatarUrl;
+      img.alt = player.name || 'avatar';
+      img.addEventListener('error', () => {
+        avatar.textContent = getInitials(player.name);
+      });
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getInitials(player.name);
+    }
+
+    const main = document.createElement('div');
+    main.className = 'player-main';
+    const name = document.createElement('p');
+    name.className = 'player-name';
+    name.textContent = player.id === state.myId ? `${player.name} (ты)` : (player.name || 'Игрок');
+    const sub = document.createElement('p');
+    sub.className = 'player-sub';
+    if (player.id === state.myId) {
+      sub.textContent = 'карточка скрыта';
+    } else {
+      const card = String(player.whoamiCard || '').trim();
+      sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
+    }
+    main.appendChild(name);
+    main.appendChild(sub);
+
+    const badge = document.createElement('span');
+    badge.className = `player-badge${isPlayerActive(player) ? '' : ' offline'}`;
+    badge.textContent = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
+
+    li.appendChild(avatar);
+    li.appendChild(main);
+    li.appendChild(badge);
+    whoamiList.appendChild(li);
+  });
 }
 
 function renderWhoamiLobbyList() {
