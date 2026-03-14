@@ -894,6 +894,7 @@ const quickQuestions = document.getElementById('quickQuestions');
 const quickQuestionsList = document.getElementById('quickQuestionsList');
 const globalPlayersList = document.getElementById('globalPlayersList');
 const globalOnlineCount = document.getElementById('globalOnlineCount');
+const globalOnlineSection = document.getElementById('globalOnlineSection');
 const gameStatus = document.getElementById('gameStatus');
 const showRoleCardBtn = document.getElementById('showRoleCardBtn');
 const newRoundBtn = document.getElementById('newRoundBtn');
@@ -2474,6 +2475,7 @@ function renderRoom() {
       if (showRoleCardBtn) showRoleCardBtn.classList.add('hidden');
       if (votePanel) votePanel.classList.add('hidden');
       if (quickQuestions) quickQuestions.classList.add('hidden');
+      if (globalOnlineSection) globalOnlineSection.classList.add('hidden');
       if (whoamiPanel) whoamiPanel.classList.remove('hidden');
       renderWhoamiPanel();
       if (whoamiGuessBtn) {
@@ -2489,6 +2491,7 @@ function renderRoom() {
     if (roleCard) roleCard.classList.remove('hidden');
     if (roleHint) roleHint.classList.remove('hidden');
     if (showRoleCardBtn) showRoleCardBtn.classList.remove('hidden');
+    if (globalOnlineSection) globalOnlineSection.classList.remove('hidden');
 
     if (room.state === 'finished' && room.lastVoteResult === 'all_spies_found') {
       roundAlert.className = 'round-alert success';
