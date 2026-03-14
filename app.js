@@ -866,9 +866,6 @@ const playersList = document.getElementById('playersList');
 const roomOnlineCount = document.getElementById('roomOnlineCount');
 const lobbyStatus = document.getElementById('lobbyStatus');
 const whoamiLobby = document.getElementById('whoamiLobby');
-const whoamiTargetSelect = document.getElementById('whoamiTargetSelect');
-const whoamiCardInput = document.getElementById('whoamiCardInput');
-const whoamiSaveBtn = document.getElementById('whoamiSaveBtn');
 const whoamiStatus = document.getElementById('whoamiStatus');
 const whoamiLobbyList = document.getElementById('whoamiLobbyList');
 const startRoundBtn = document.getElementById('startRoundBtn');
@@ -1733,36 +1730,6 @@ function isWhoamiGame(room = state.roomData) {
   return gameType === 'whoami';
 }
 
-function updateWhoamiTargetOptions() {
-  if (!whoamiTargetSelect) return;
-  whoamiTargetSelect.innerHTML = '';
-  const others = state.players.filter((player) => player.id !== state.myId);
-  if (others.length === 0) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = 'Нет игроков';
-    whoamiTargetSelect.appendChild(opt);
-    whoamiTargetSelect.disabled = true;
-    return;
-  }
-  whoamiTargetSelect.disabled = false;
-  const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = 'Кому написать?';
-  whoamiTargetSelect.appendChild(placeholder);
-  others.forEach((player) => {
-    const opt = document.createElement('option');
-    opt.value = player.id;
-    opt.textContent = player.name || 'Игрок';
-    whoamiTargetSelect.appendChild(opt);
-  });
-  const me = state.players.find((player) => player.id === state.myId);
-  const assigned = me?.whoamiAssignedTo || '';
-  if (assigned) {
-    whoamiTargetSelect.value = assigned;
-  }
-}
-
 async function assignWhoamiCard(targetId, value) {
   if (!state.db || !state.roomCode) return;
   if (!isWhoamiGame(state.roomData)) return;
@@ -1841,16 +1808,7 @@ function renderWhoamiList(targetEl) {
     const name = document.createElement('p');
     name.className = 'player-name';
     name.textContent = player.id === state.myId ? `${player.name} (ты)` : (player.name || 'Игрок');
-    const sub = document.createElement('p');
-    sub.className = 'player-sub';
-    if (player.id === state.myId) {
-      sub.textContent = 'карточка скрыта';
-    } else {
-      const card = String(player.whoamiCard || '').trim();
-      sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
-    }
     main.appendChild(name);
-    main.appendChild(sub);
 
     const badge = document.createElement('span');
     badge.className = `player-badge${isPlayerActive(player) ? '' : ' offline'}`;
@@ -1868,7 +1826,95 @@ function renderWhoamiPanel() {
 }
 
 function renderWhoamiLobbyList() {
-  renderWhoamiList(whoamiLobbyList);
+  if (!whoamiLobbyList) return;
+  whoamiLobbyList.innerHTML = '';
+  if (state.players.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'player-item empty';
+    li.textContent = 'Пока нет игроков';
+    whoamiLobbyList.appendChild(li);
+    return;
+  }
+
+  const sorted = [...state.players].sort((a, b) => {
+    const joinedA = toMillis(a.joinedAt);
+    const joinedB = toMillis(b.joinedAt);
+    if (joinedA !== joinedB) return joinedA - joinedB;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+
+  sorted.forEach((player) => {
+    const li = document.createElement('li');
+    li.className = 'player-item';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'player-avatar';
+    if (player.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = player.avatarUrl;
+      img.alt = player.name || 'avatar';
+      img.addEventListener('error', () => {
+        avatar.textContent = getInitials(player.name);
+      });
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getInitials(player.name);
+    }
+
+    const main = document.createElement('div');
+    main.className = 'player-main';
+    const name = document.createElement('p');
+    name.className = 'player-name';
+    name.textContent = player.id === state.myId ? `${player.name} (ты)` : (player.name || 'Игрок');
+    const sub = document.createElement('p');
+    sub.className = 'player-sub';
+
+    if (player.id === state.myId) {
+      sub.textContent = 'карточка скрыта';
+    } else {
+      const card = String(player.whoamiCard || '').trim();
+      sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
+    }
+
+    main.appendChild(name);
+    main.appendChild(sub);
+
+    const badge = document.createElement('span');
+    badge.className = `player-badge${isPlayerActive(player) ? '' : ' offline'}`;
+    badge.textContent = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
+
+    li.appendChild(avatar);
+    li.appendChild(main);
+    li.appendChild(badge);
+
+    if (player.id !== state.myId) {
+      const editor = document.createElement('div');
+      editor.className = 'whoami-card-editor';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 48;
+      input.placeholder = 'Напиши персонажа';
+      input.value = String(player.whoamiCard || '');
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'btn';
+      saveBtn.textContent = 'Сохранить';
+      saveBtn.addEventListener('click', () => {
+        assignWhoamiCard(player.id, input.value);
+      });
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          assignWhoamiCard(player.id, input.value);
+        }
+      });
+      editor.appendChild(input);
+      editor.appendChild(saveBtn);
+      li.appendChild(editor);
+    }
+
+    whoamiLobbyList.appendChild(li);
+  });
 }
 
 function renderGlobalPresence() {
@@ -2304,7 +2350,6 @@ function renderRoom() {
   renderTopAvatar(gameTopAvatar, topAvatar, topName);
 
   renderPlayers();
-  updateWhoamiTargetOptions();
   renderWhoamiLobbyList();
 
   if (room.state === 'started' || room.state === 'finished') {
@@ -2572,7 +2617,6 @@ function subscribeRoom() {
         recoverRoomToLobby();
       }
       renderPlayers();
-      updateWhoamiTargetOptions();
       renderWhoamiLobbyList();
       if (state.roomData && isWhoamiGame(state.roomData) && (state.roomData.state === 'started' || state.roomData.state === 'finished')) {
         renderWhoamiPanel();
@@ -3428,17 +3472,6 @@ if (categoryGrid) {
     cell.addEventListener('click', () => {
       setCategoryUI(cell.dataset.category || 'all');
     });
-  });
-}
-if (whoamiSaveBtn && whoamiCardInput && whoamiTargetSelect) {
-  whoamiSaveBtn.addEventListener('click', () => {
-    assignWhoamiCard(whoamiTargetSelect.value, whoamiCardInput.value);
-  });
-  whoamiCardInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      assignWhoamiCard(whoamiTargetSelect.value, whoamiCardInput.value);
-    }
   });
 }
 avatarPickerBtn.addEventListener('click', () => {

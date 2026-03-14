@@ -841,20 +841,20 @@ select:focus {
   gap: 10px;
 }
 
-.whoami-input {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr auto;
-  gap: 10px;
-  align-items: center;
-}
-
-.whoami-input input,
-.whoami-input select {
-  width: 100%;
-}
-
 .whoami-panel {
   margin: 6px 0 16px;
+}
+
+.whoami-card-editor {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.whoami-card-editor input {
+  width: 100%;
 }
 
 .player-item {
@@ -1043,7 +1043,7 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
-  .whoami-input {
+  .whoami-card-editor {
     grid-template-columns: 1fr;
   }
 
