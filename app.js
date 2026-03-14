@@ -898,10 +898,6 @@ const chatPanel = document.getElementById('chatPanel');
 const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const chatSendBtn = document.getElementById('chatSendBtn');
-const notesPanel = document.getElementById('notesPanel');
-const notesMessages = document.getElementById('notesMessages');
-const notesInput = document.getElementById('notesInput');
-const notesAddBtn = document.getElementById('notesAddBtn');
 const quickQuestions = document.getElementById('quickQuestions');
 const quickQuestionsList = document.getElementById('quickQuestionsList');
 const globalPlayersList = document.getElementById('globalPlayersList');
@@ -940,7 +936,6 @@ const state = {
   globalPlayers: [],
   votes: [],
   chat: [],
-  notes: [],
   roomUnsub: null,
   playersUnsub: null,
   votesUnsub: null,
@@ -2532,65 +2527,6 @@ function renderQuickQuestions() {
   });
 }
 
-function notesStorageKey() {
-  if (!state.roomCode || !state.myId) return '';
-  return `spy_notes_${state.roomCode}_${state.myId}`;
-}
-
-function loadNotes() {
-  const key = notesStorageKey();
-  if (!key) return;
-  try {
-    const raw = localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    state.notes = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    state.notes = [];
-  }
-}
-
-function saveNotes() {
-  const key = notesStorageKey();
-  if (!key) return;
-  try {
-    localStorage.setItem(key, JSON.stringify(state.notes.slice(0, 200)));
-  } catch {
-    // ignore storage errors
-  }
-}
-
-function renderNotes() {
-  if (!notesPanel || !notesMessages) return;
-  notesMessages.innerHTML = '';
-  if (!Array.isArray(state.notes) || state.notes.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'chat-message';
-    li.textContent = 'Заметок нет.';
-    notesMessages.appendChild(li);
-    return;
-  }
-  state.notes.forEach((note) => {
-    const li = document.createElement('li');
-    li.className = 'chat-message';
-    const text = document.createElement('p');
-    text.className = 'chat-text';
-    text.textContent = note.text || '';
-    li.appendChild(text);
-    notesMessages.appendChild(li);
-  });
-  notesMessages.scrollTop = notesMessages.scrollHeight;
-}
-
-function addNote() {
-  if (!notesInput) return;
-  const text = notesInput.value.trim();
-  if (!text) return;
-  state.notes.push({ text: text.slice(0, 180), createdAt: Date.now() });
-  notesInput.value = '';
-  saveNotes();
-  renderNotes();
-}
-
 async function sendChatMessage() {
   if (!chatInput) return;
   const text = chatInput.value.trim();
@@ -2665,8 +2601,6 @@ function renderRoom() {
 
   renderPlayers();
   renderWhoamiLobbyList();
-  loadNotes();
-  renderNotes();
 
   if (room.state === 'started' || room.state === 'finished') {
     setVisible('game');
@@ -2702,7 +2636,6 @@ function renderRoom() {
       if (quickQuestions) quickQuestions.classList.add('hidden');
       if (globalOnlineSection) globalOnlineSection.classList.add('hidden');
       if (chatPanel) chatPanel.classList.add('hidden');
-      if (notesPanel) notesPanel.classList.remove('hidden');
       if (whoamiPanel) whoamiPanel.classList.remove('hidden');
       renderWhoamiPanel();
       if (whoamiGuessBtn) {
@@ -2712,7 +2645,6 @@ function renderRoom() {
         ? 'Ты уже угадал свою карточку. Игра продолжается.'
         : 'Задавай вопросы и постарайся угадать свою карточку.';
       renderChat();
-      renderNotes();
       return;
     }
     if (whoamiPanel) whoamiPanel.classList.add('hidden');
@@ -2746,7 +2678,6 @@ function renderRoom() {
     }
     renderQuickQuestions();
     renderChat();
-    if (notesPanel) notesPanel.classList.add('hidden');
     renderRoomOnlineList();
   } else {
     setVisible('lobby');
@@ -2759,7 +2690,6 @@ function renderRoom() {
     votePanel.classList.add('hidden');
     if (quickQuestions) quickQuestions.classList.add('hidden');
     chatPanel.classList.add('hidden');
-    if (notesPanel) notesPanel.classList.add('hidden');
     const activeCount = state.players.filter(isPlayerActive).length;
     const expected = Number(room.expectedPlayers || state.expectedPlayers || 3);
     const spyModeLabel = roomSpyMode === 'known' ? 'сговор' : 'вслепую';
@@ -3708,7 +3638,6 @@ async function leaveRoom() {
   state.players = [];
   state.votes = [];
   state.chat = [];
-  state.notes = [];
   state.lastRevealToken = '';
   hideRoleReveal();
   setVisible('join');
@@ -3935,17 +3864,6 @@ if (chatSendBtn) {
   chatSendBtn.addEventListener('click', sendChatMessage);
 }
 roleRevealBtn.addEventListener('click', hideRoleReveal);
-if (notesAddBtn) {
-  notesAddBtn.addEventListener('click', addNote);
-}
-if (notesInput) {
-  notesInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addNote();
-    }
-  });
-}
 if (whoamiGuessBtn) {
   whoamiGuessBtn.addEventListener('click', async () => {
     if (!state.roomData || state.roomData.state !== 'started') return;
