@@ -877,7 +877,6 @@ const whoamiLobby = document.getElementById('whoamiLobby');
 const whoamiStatus = document.getElementById('whoamiStatus');
 const whoamiLobbyList = document.getElementById('whoamiLobbyList');
 const startRoundBtn = document.getElementById('startRoundBtn');
-const clearRoomBtn = document.getElementById('clearRoomBtn');
 const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 
 const gameRoomText = document.getElementById('gameRoomText');
@@ -3904,9 +3903,6 @@ if (whoamiGuessBtn) {
       gameStatus.textContent = `Ошибка: ${error.message}`;
     }
   });
-}
-if (clearRoomBtn) {
-  clearRoomBtn.addEventListener('click', clearRoom);
 }
 if (adminClearBtn) {
   adminClearBtn.addEventListener('click', clearAllRooms);
