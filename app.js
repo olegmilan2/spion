@@ -1884,7 +1884,7 @@ function renderWhoamiPanel() {
       sub.textContent = 'карточка скрыта';
     } else {
       const card = String(player.whoamiCard || '').trim();
-      sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
+      sub.textContent = card ? card : 'карточка не указана';
     }
     main.appendChild(sub);
 
@@ -2551,6 +2551,7 @@ function renderRoom() {
       if (votePanel) votePanel.classList.add('hidden');
       if (quickQuestions) quickQuestions.classList.add('hidden');
       if (globalOnlineSection) globalOnlineSection.classList.add('hidden');
+      if (chatPanel) chatPanel.classList.add('hidden');
       if (notesPanel) notesPanel.classList.remove('hidden');
       if (whoamiPanel) whoamiPanel.classList.remove('hidden');
       renderWhoamiPanel();
