@@ -867,6 +867,7 @@ const lobbyTopName = document.getElementById('lobbyTopName');
 const playersList = document.getElementById('playersList');
 const roomOnlineCount = document.getElementById('roomOnlineCount');
 const lobbyStatus = document.getElementById('lobbyStatus');
+const roomPlayersSection = document.getElementById('roomPlayersSection');
 const whoamiLobby = document.getElementById('whoamiLobby');
 const whoamiStatus = document.getElementById('whoamiStatus');
 const whoamiLobbyList = document.getElementById('whoamiLobbyList');
@@ -2623,10 +2624,12 @@ function renderRoom() {
       lobbyStatus.textContent = activeCount >= 2
         ? `Готово к старту. Игроков: ${activeCount}. Карточки: ${cardsReady}/${activeCount}. Режим: кто я.`
         : `Нужно минимум 2 игрока. Сейчас: ${activeCount}. Карточки: ${cardsReady}/${activeCount}.`;
+      if (roomPlayersSection) roomPlayersSection.classList.add('hidden');
     } else {
       lobbyStatus.textContent = activeCount === expected
         ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
         : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`;
+      if (roomPlayersSection) roomPlayersSection.classList.remove('hidden');
     }
     if (whoamiLobby) {
       whoamiLobby.classList.toggle('hidden', !isWhoami);
@@ -2821,6 +2824,7 @@ function subscribeRoom() {
           if (whoamiLobby) {
             whoamiLobby.classList.remove('hidden');
           }
+          if (roomPlayersSection) roomPlayersSection.classList.add('hidden');
         } else {
           lobbyStatus.textContent = activeCount === expected
             ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
@@ -2828,6 +2832,7 @@ function subscribeRoom() {
           if (whoamiLobby) {
             whoamiLobby.classList.add('hidden');
           }
+          if (roomPlayersSection) roomPlayersSection.classList.remove('hidden');
         }
       }
     },

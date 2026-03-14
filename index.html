@@ -15,7 +15,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./style.css?v=20260314-1">
+  <link rel="stylesheet" href="./style.css?v=20260314-2">
 </head>
 <body>
   <div class="bg-shape bg-shape-a"></div>
@@ -140,8 +140,10 @@
         <p id="roundText">Раунд #1</p>
       </div>
       <h2>Лобби</h2>
-      <p class="hint">Игроки в комнате: <span id="roomOnlineCount">0</span></p>
-      <ul id="playersList" class="players-list"></ul>
+      <div id="roomPlayersSection">
+        <p class="hint">Игроки в комнате: <span id="roomOnlineCount">0</span></p>
+        <ul id="playersList" class="players-list"></ul>
+      </div>
       <div id="whoamiLobby" class="whoami-lobby hidden">
         <p class="hint">Выбери игрока и напиши ему карточку:</p>
         <p id="whoamiStatus" class="hint"></p>
