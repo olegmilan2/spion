@@ -114,6 +114,19 @@ h2 {
   margin: 8px 0 8px;
 }
 
+.admin-clear {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(15, 23, 42, 0.12);
+}
+
+.admin-clear-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
 .mode-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

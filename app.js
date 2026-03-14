@@ -861,6 +861,8 @@ const joinBtn = document.getElementById('joinBtn');
 const joinError = document.getElementById('joinError');
 const globalStatus = document.getElementById('globalStatus');
 const mainOnlineCount = document.getElementById('mainOnlineCount');
+const adminClearPassword = document.getElementById('adminClearPassword');
+const adminClearBtn = document.getElementById('adminClearBtn');
 
 const lobbyRoomText = document.getElementById('lobbyRoomText');
 const lobbyCopyRoomBtn = document.getElementById('lobbyCopyRoomBtn');
@@ -3676,6 +3678,34 @@ async function clearRoom() {
   }
 }
 
+async function clearAllRooms() {
+  if (!state.db) return;
+  const password = adminClearPassword ? adminClearPassword.value.trim() : '';
+  if (password !== '201108') {
+    showGlobalStatus('Неверный пароль очистки.', 'error');
+    return;
+  }
+  const ok = window.confirm('Очистить ВСЕ комнаты? Это удалит все данные.');
+  if (!ok) return;
+  try {
+    const roomsSnap = await getDocs(collection(state.db, 'rooms'));
+    for (const roomDoc of roomsSnap.docs) {
+      const roomId = roomDoc.id;
+      const deleteAllFrom = async (path) => {
+        const snap = await getDocs(collection(state.db, ...path));
+        await Promise.all(snap.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+      };
+      await deleteAllFrom(['rooms', roomId, 'players']);
+      await deleteAllFrom(['rooms', roomId, 'votes']);
+      await deleteAllFrom(['rooms', roomId, 'chat']);
+      await deleteDoc(doc(state.db, 'rooms', roomId));
+    }
+    showGlobalStatus('Все комнаты очищены.', 'ok');
+  } catch (error) {
+    showGlobalStatus(`Ошибка очистки всех комнат: ${error.message}`, 'error');
+  }
+}
+
 async function initFirebase() {
   const firebaseConfig = window.FIREBASE_CONFIG || null;
   if (!hasValidFirebaseConfig(firebaseConfig)) {
@@ -3858,6 +3888,9 @@ if (whoamiGuessBtn) {
 }
 if (clearRoomBtn) {
   clearRoomBtn.addEventListener('click', clearRoom);
+}
+if (adminClearBtn) {
+  adminClearBtn.addEventListener('click', clearAllRooms);
 }
 if (chatInput) {
   chatInput.addEventListener('keydown', (event) => {
