@@ -2687,7 +2687,7 @@ function renderRoom() {
     }
     renderQuickQuestions();
     renderChat();
-    renderNotes();
+    if (notesPanel) notesPanel.classList.add('hidden');
   } else {
     setVisible('lobby');
     if (lobbyCard) lobbyCard.classList.toggle('whoami', isWhoami);
