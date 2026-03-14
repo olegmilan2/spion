@@ -1729,8 +1729,8 @@ function renderPlayers() {
     const name = document.createElement('p');
     name.className = 'player-name';
     name.textContent = player.id === state.myId ? `${player.name} (ты)` : player.name;
-    const sub = document.createElement('p');
-    sub.className = 'player-sub';
+    const sub = document.createElement('div');
+    sub.className = 'player-sub whoami-card-content';
     sub.textContent = player.eliminated === true ? 'ожидание до нового раунда' : 'в игре';
     main.appendChild(name);
     main.appendChild(sub);
