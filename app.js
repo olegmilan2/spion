@@ -800,6 +800,7 @@ const LOCAL_EXPECTED_KEY = 'spy_expected_players';
 const LOCAL_SPY_COUNT_KEY = 'spy_count';
 const LOCAL_SPY_MODE_KEY = 'spy_mode';
 const LOCAL_GAME_VARIANT_KEY = 'spy_game_variant';
+const LOCAL_GAME_TYPE_KEY = 'spy_game_type';
 const LOCAL_CATEGORY_KEY = 'spy_location_category';
 const LOCAL_DIFFICULTY_KEY = 'spy_location_difficulty';
 const AVATAR_MAX_BYTES = 90 * 1024;
@@ -835,13 +836,19 @@ const avatarPickerBtn = document.getElementById('avatarPickerBtn');
 const avatarFileInput = document.getElementById('avatarFileInput');
 const avatarPreview = document.getElementById('avatarPreview');
 const roomCodeInput = document.getElementById('roomCodeInput');
+const gameTypeGrid = document.getElementById('gameTypeGrid');
+const gameTypeInput = document.getElementById('gameTypeInput');
+const expectedPlayersWrap = document.getElementById('expectedPlayersWrap');
 const expectedPlayersInput = document.getElementById('expectedPlayersInput');
+const variantSettings = document.getElementById('variantSettings');
+const spySettings = document.getElementById('spySettings');
 const spyCountGrid = document.getElementById('spyCountGrid');
 const spyCountInput = document.getElementById('spyCountInput');
 const spyModeGrid = document.getElementById('spyModeGrid');
 const spyModeInput = document.getElementById('spyModeInput');
 const gameVariantGrid = document.getElementById('gameVariantGrid');
 const gameVariantInput = document.getElementById('gameVariantInput');
+const locationSettings = document.getElementById('locationSettings');
 const categoryGrid = document.getElementById('categoryGrid');
 const categoryInput = document.getElementById('categoryInput');
 const difficultyInput = document.getElementById('difficultyInput');
@@ -859,9 +866,11 @@ const playersList = document.getElementById('playersList');
 const roomOnlineCount = document.getElementById('roomOnlineCount');
 const lobbyStatus = document.getElementById('lobbyStatus');
 const whoamiLobby = document.getElementById('whoamiLobby');
-const whoamiInput = document.getElementById('whoamiInput');
+const whoamiTargetSelect = document.getElementById('whoamiTargetSelect');
+const whoamiCardInput = document.getElementById('whoamiCardInput');
 const whoamiSaveBtn = document.getElementById('whoamiSaveBtn');
 const whoamiStatus = document.getElementById('whoamiStatus');
+const whoamiLobbyList = document.getElementById('whoamiLobbyList');
 const startRoundBtn = document.getElementById('startRoundBtn');
 const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 
@@ -912,6 +921,7 @@ const state = {
   spyCount: Number(localStorage.getItem(LOCAL_SPY_COUNT_KEY) || 1),
   spyMode: localStorage.getItem(LOCAL_SPY_MODE_KEY) || 'blind',
   gameVariant: localStorage.getItem(LOCAL_GAME_VARIANT_KEY) || 'classic',
+  gameType: localStorage.getItem(LOCAL_GAME_TYPE_KEY) || 'spy',
   locationCategory: localStorage.getItem(LOCAL_CATEGORY_KEY) || 'all',
   locationDifficulty: localStorage.getItem(LOCAL_DIFFICULTY_KEY) || 'all',
   roomData: null,
@@ -1012,8 +1022,34 @@ function setSpyCountUI(count) {
   renderRules();
 }
 
+function setGameTypeUI(type) {
+  const allowed = ['spy', 'whoami'];
+  gameTypeInput.value = allowed.includes(type) ? type : 'spy';
+  if (gameTypeGrid) {
+    const cells = gameTypeGrid.querySelectorAll('.mode-cell');
+    cells.forEach((cell) => {
+      cell.classList.toggle('active', cell.dataset.gameType === gameTypeInput.value);
+    });
+  }
+  state.gameType = gameTypeInput.value;
+  const isWhoami = gameTypeInput.value === 'whoami';
+  if (expectedPlayersWrap) {
+    expectedPlayersWrap.classList.toggle('hidden', isWhoami);
+  }
+  if (variantSettings) {
+    variantSettings.classList.toggle('hidden', isWhoami);
+  }
+  if (spySettings) {
+    spySettings.classList.toggle('hidden', isWhoami);
+  }
+  if (locationSettings) {
+    locationSettings.classList.toggle('hidden', isWhoami);
+  }
+  renderRules();
+}
+
 function setGameVariantUI(variant) {
-  const allowed = ['classic', 'classic_roles', 'hide', 'whoami'];
+  const allowed = ['classic', 'classic_roles', 'hide'];
   gameVariantInput.value = allowed.includes(variant) ? variant : 'classic';
   if (gameVariantGrid) {
     const cells = gameVariantGrid.querySelectorAll('.mode-cell');
@@ -1046,26 +1082,13 @@ function formatDifficultyLabel(difficulty) {
 
 function renderRules() {
   if (!rulesMeta || !rulesList) return;
-  const spyCount = Number(spyCountInput.value) === 2 ? 2 : 1;
-  const spyMode = spyModeInput.value === 'known' ? 'known' : 'blind';
-  const gameVariant = ['classic', 'classic_roles', 'hide', 'whoami'].includes(gameVariantInput.value)
-    ? gameVariantInput.value
-    : 'classic';
-  const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
-  const gameVariantLabel = gameVariant === 'hide'
-    ? 'прятки на виду'
-    : gameVariant === 'classic_roles'
-      ? 'классика с ролью'
-      : gameVariant === 'whoami'
-        ? 'кто я'
-        : 'классика';
-
-  if (gameVariant === 'whoami') {
+  const gameType = gameTypeInput?.value === 'whoami' ? 'whoami' : 'spy';
+  if (gameType === 'whoami') {
     rulesMeta.textContent = 'Текущие правила: режим "Кто я?".';
     const items = [
       'Все игроки вводят один и тот же код комнаты и ждут полный состав в лобби.',
-      'Каждый игрок вводит свою карточку. Ее видят остальные, но не он сам.',
-      'Игра начинается, когда все участники ввели карточки.',
+      'Каждый игрок пишет карточку другому игроку. Карточку видят все, кроме владельца.',
+      'Игра начинается, когда у каждого игрока есть карточка.',
       'Игроки задают вопросы и пытаются угадать свою карточку.',
       'Кто угадал — нажимает кнопку "Я угадал", выходит из игры, остальные продолжают.'
     ];
@@ -1077,6 +1100,18 @@ function renderRules() {
     });
     return;
   }
+
+  const spyCount = Number(spyCountInput.value) === 2 ? 2 : 1;
+  const spyMode = spyModeInput.value === 'known' ? 'known' : 'blind';
+  const gameVariant = ['classic', 'classic_roles', 'hide'].includes(gameVariantInput.value)
+    ? gameVariantInput.value
+    : 'classic';
+  const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
+  const gameVariantLabel = gameVariant === 'hide'
+    ? 'прятки на виду'
+    : gameVariant === 'classic_roles'
+      ? 'классика с ролью'
+      : 'классика';
 
   rulesMeta.textContent = `Текущие правила: ${spyCount} шпион(а), режим ${spyModeLabel}, вариант ${gameVariantLabel}.`;
 
@@ -1573,6 +1608,7 @@ function showGlobalStatus(message, type = 'muted') {
 
 function openRoleCardByClick() {
   if (!state.roomData || (state.roomData.state !== 'started' && state.roomData.state !== 'finished')) return;
+  if (isWhoamiGame(state.roomData)) return;
   playFlipSound();
   const me = state.players.find((player) => player.id === state.myId);
   const iAmEliminated = me?.eliminated === true;
@@ -1692,31 +1728,70 @@ function renderPlayers() {
   });
 }
 
-function isWhoamiVariant(room = state.roomData) {
-  const variant = room?.gameVariant || state.gameVariant || 'classic';
-  return variant === 'whoami';
+function isWhoamiGame(room = state.roomData) {
+  const gameType = room?.gameType || state.gameType || 'spy';
+  return gameType === 'whoami';
 }
 
-function syncWhoamiInputFromPlayer() {
-  if (!whoamiInput) return;
-  if (document.activeElement === whoamiInput) return;
+function updateWhoamiTargetOptions() {
+  if (!whoamiTargetSelect) return;
+  whoamiTargetSelect.innerHTML = '';
+  const others = state.players.filter((player) => player.id !== state.myId);
+  if (others.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'Нет игроков';
+    whoamiTargetSelect.appendChild(opt);
+    whoamiTargetSelect.disabled = true;
+    return;
+  }
+  whoamiTargetSelect.disabled = false;
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Кому написать?';
+  whoamiTargetSelect.appendChild(placeholder);
+  others.forEach((player) => {
+    const opt = document.createElement('option');
+    opt.value = player.id;
+    opt.textContent = player.name || 'Игрок';
+    whoamiTargetSelect.appendChild(opt);
+  });
   const me = state.players.find((player) => player.id === state.myId);
-  const value = String(me?.whoamiCard || '').trim();
-  if (value && whoamiInput.value !== value) {
-    whoamiInput.value = value;
+  const assigned = me?.whoamiAssignedTo || '';
+  if (assigned) {
+    whoamiTargetSelect.value = assigned;
   }
 }
 
-async function updateWhoamiCard(value) {
+async function assignWhoamiCard(targetId, value) {
   if (!state.db || !state.roomCode) return;
+  if (!isWhoamiGame(state.roomData)) return;
+  if (state.roomData && state.roomData.state !== 'lobby') {
+    if (whoamiStatus) whoamiStatus.textContent = 'Карточки можно менять только в лобби.';
+    return;
+  }
   const card = String(value || '').trim().slice(0, 48);
+  if (!targetId) {
+    if (whoamiStatus) whoamiStatus.textContent = 'Выбери игрока.';
+    return;
+  }
+  if (targetId === state.myId) {
+    if (whoamiStatus) whoamiStatus.textContent = 'Нельзя выбрать себя.';
+    return;
+  }
   if (!card) {
     if (whoamiStatus) whoamiStatus.textContent = 'Карточка не может быть пустой.';
     return;
   }
   try {
-    await updateDoc(playerRef(state.myId), {
+    await updateDoc(playerRef(targetId), {
       whoamiCard: card,
+      whoamiCardAuthorId: state.myId,
+      whoamiCardAuthorName: state.myName,
+      lastSeenAt: serverTimestamp()
+    });
+    await updateDoc(playerRef(state.myId), {
+      whoamiAssignedTo: targetId,
       lastSeenAt: serverTimestamp()
     });
     if (whoamiStatus) whoamiStatus.textContent = 'Карточка сохранена.';
@@ -1725,19 +1800,18 @@ async function updateWhoamiCard(value) {
   }
 }
 
-function renderWhoamiPanel() {
-  if (!whoamiPanel || !whoamiList) return;
-  whoamiList.innerHTML = '';
-  const others = state.players.filter((player) => player.id !== state.myId);
-  if (others.length === 0) {
+function renderWhoamiList(targetEl) {
+  if (!targetEl) return;
+  targetEl.innerHTML = '';
+  if (state.players.length === 0) {
     const li = document.createElement('li');
     li.className = 'player-item empty';
-    li.textContent = 'Пока нет других игроков';
-    whoamiList.appendChild(li);
+    li.textContent = 'Пока нет игроков';
+    targetEl.appendChild(li);
     return;
   }
 
-  const sorted = [...others].sort((a, b) => {
+  const sorted = [...state.players].sort((a, b) => {
     const joinedA = toMillis(a.joinedAt);
     const joinedB = toMillis(b.joinedAt);
     if (joinedA !== joinedB) return joinedA - joinedB;
@@ -1766,11 +1840,15 @@ function renderWhoamiPanel() {
     main.className = 'player-main';
     const name = document.createElement('p');
     name.className = 'player-name';
-    name.textContent = player.name || 'Игрок';
+    name.textContent = player.id === state.myId ? `${player.name} (ты)` : (player.name || 'Игрок');
     const sub = document.createElement('p');
     sub.className = 'player-sub';
-    const card = String(player.whoamiCard || '').trim();
-    sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
+    if (player.id === state.myId) {
+      sub.textContent = 'карточка скрыта';
+    } else {
+      const card = String(player.whoamiCard || '').trim();
+      sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
+    }
     main.appendChild(name);
     main.appendChild(sub);
 
@@ -1781,8 +1859,16 @@ function renderWhoamiPanel() {
     li.appendChild(avatar);
     li.appendChild(main);
     li.appendChild(badge);
-    whoamiList.appendChild(li);
+    targetEl.appendChild(li);
   });
+}
+
+function renderWhoamiPanel() {
+  renderWhoamiList(whoamiList);
+}
+
+function renderWhoamiLobbyList() {
+  renderWhoamiList(whoamiLobbyList);
 }
 
 function renderGlobalPresence() {
@@ -1869,6 +1955,7 @@ function voteByMe() {
 
 async function tryResolveVotes() {
   if (!state.roomData || state.roomData.state !== 'started') return;
+  if (isWhoamiGame(state.roomData)) return;
 
   const voteStage = Number(state.roomData.voteStage || 1);
   if (Number(state.roomData.resolvedVoteStage || 0) === voteStage) return;
@@ -1969,6 +2056,10 @@ async function tryResolveVotes() {
 
 function renderVotePanel() {
   if (!state.roomData || state.roomData.state !== 'started') {
+    votePanel.classList.add('hidden');
+    return;
+  }
+  if (isWhoamiGame(state.roomData)) {
     votePanel.classList.add('hidden');
     return;
   }
@@ -2187,7 +2278,8 @@ function renderRoom() {
   const roomSpyCount = Number(room.spyCount || state.spyCount || 1);
   const roomSpyMode = room.spyMode || state.spyMode || 'blind';
   const roomGameVariant = room.gameVariant || state.gameVariant || 'classic';
-  const isWhoami = roomGameVariant === 'whoami';
+  const roomGameType = room.gameType || state.gameType || 'spy';
+  const isWhoami = roomGameType === 'whoami';
   const roomQuickQuestions = Array.isArray(room.quickQuestions) && room.quickQuestions.length > 0
     ? room.quickQuestions
     : QUICK_QUESTIONS;
@@ -2197,6 +2289,7 @@ function renderRoom() {
   setSpyCountUI(Math.max(1, Math.min(2, roomSpyCount)));
   setSpyModeUI(roomSpyMode);
   setGameVariantUI(roomGameVariant);
+  setGameTypeUI(roomGameType);
   lobbyRoomText.textContent = `Комната: ${state.roomCode}`;
   syncCopyRoomButtons();
   roundText.textContent = `Раунд #${roundNumber}`;
@@ -2211,7 +2304,8 @@ function renderRoom() {
   renderTopAvatar(gameTopAvatar, topAvatar, topName);
 
   renderPlayers();
-  syncWhoamiInputFromPlayer();
+  updateWhoamiTargetOptions();
+  renderWhoamiLobbyList();
 
   if (room.state === 'started' || room.state === 'finished') {
     setVisible('game');
@@ -2300,19 +2394,17 @@ function renderRoom() {
       ? 'прятки на виду'
       : roomGameVariant === 'classic_roles'
         ? 'классика с ролью'
-        : roomGameVariant === 'whoami'
-          ? 'кто я'
-          : 'классика';
+        : 'классика';
     const roomCategoryLabel = formatCategoryLabel(roomCategory);
     const roomDifficultyLabel = formatDifficultyLabel(roomDifficulty);
     if (isWhoami) {
       const cardsReady = state.players.filter((player) => {
         const card = String(player.whoamiCard || '').trim();
-        return isPlayerActive(player) && card.length > 0;
+        return isPlayerActive(player) && card.length > 0 && player.whoamiCardAuthorId && player.whoamiCardAuthorId !== player.id;
       }).length;
-      lobbyStatus.textContent = activeCount === expected
-        ? `Готово к старту. Игроков: ${activeCount}/${expected}. Карточки: ${cardsReady}/${expected}. Вариант: ${gameVariantLabel}.`
-        : `Ожидаем игроков: ${activeCount}/${expected}. Карточки: ${cardsReady}/${expected}. Вариант: ${gameVariantLabel}.`;
+      lobbyStatus.textContent = activeCount >= 2
+        ? `Готово к старту. Игроков: ${activeCount}. Карточки: ${cardsReady}/${activeCount}. Режим: кто я.`
+        : `Нужно минимум 2 игрока. Сейчас: ${activeCount}. Карточки: ${cardsReady}/${activeCount}.`;
     } else {
       lobbyStatus.textContent = activeCount === expected
         ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
@@ -2480,8 +2572,9 @@ function subscribeRoom() {
         recoverRoomToLobby();
       }
       renderPlayers();
-      syncWhoamiInputFromPlayer();
-      if (state.roomData && isWhoamiVariant(state.roomData) && (state.roomData.state === 'started' || state.roomData.state === 'finished')) {
+      updateWhoamiTargetOptions();
+      renderWhoamiLobbyList();
+      if (state.roomData && isWhoamiGame(state.roomData) && (state.roomData.state === 'started' || state.roomData.state === 'finished')) {
         renderWhoamiPanel();
       }
       if (state.roomData && state.roomData.state !== 'started') {
@@ -2489,26 +2582,25 @@ function subscribeRoom() {
         const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
         const spyMode = state.roomData.spyMode || state.spyMode || 'blind';
         const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
+        const gameType = state.roomData.gameType || state.gameType || 'spy';
         const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
         const gameVariantLabel = gameVariant === 'hide'
           ? 'прятки на виду'
           : gameVariant === 'classic_roles'
             ? 'классика с ролью'
-            : gameVariant === 'whoami'
-              ? 'кто я'
-              : 'классика';
+            : 'классика';
         const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
         const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
         const roomCategoryLabel = formatCategoryLabel(roomCategory);
         const roomDifficultyLabel = formatDifficultyLabel(roomDifficulty);
-        if (gameVariant === 'whoami') {
+        if (gameType === 'whoami') {
           const cardsReady = state.players.filter((player) => {
             const card = String(player.whoamiCard || '').trim();
-            return isPlayerActive(player) && card.length > 0;
+            return isPlayerActive(player) && card.length > 0 && player.whoamiCardAuthorId && player.whoamiCardAuthorId !== player.id;
           }).length;
-          lobbyStatus.textContent = activeCount === expected
-            ? `Готово к старту. Игроков: ${activeCount}/${expected}. Карточки: ${cardsReady}/${expected}. Вариант: ${gameVariantLabel}.`
-            : `Ожидаем игроков: ${activeCount}/${expected}. Карточки: ${cardsReady}/${expected}. Вариант: ${gameVariantLabel}.`;
+          lobbyStatus.textContent = activeCount >= 2
+            ? `Готово к старту. Игроков: ${activeCount}. Карточки: ${cardsReady}/${activeCount}. Режим: кто я.`
+            : `Нужно минимум 2 игрока. Сейчас: ${activeCount}. Карточки: ${cardsReady}/${activeCount}.`;
           if (whoamiLobby) {
             whoamiLobby.classList.remove('hidden');
           }
@@ -2532,7 +2624,7 @@ function subscribeRoom() {
     votesQuery,
     (snapshot) => {
       state.votes = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-      if (state.roomData?.state === 'started') {
+      if (state.roomData?.state === 'started' && !isWhoamiGame(state.roomData)) {
         renderVotePanel();
         tryResolveVotes();
       }
@@ -2570,6 +2662,7 @@ async function ensureRoomAndJoin() {
         lobbyStarterUid: state.authUid,
         state: 'lobby',
         roundNumber: 1,
+        gameType: state.gameType,
         expectedPlayers: state.expectedPlayers,
         spyCount: state.spyCount,
         spyMode: state.spyMode,
@@ -2585,6 +2678,8 @@ async function ensureRoomAndJoin() {
       });
     } else {
       const data = snap.data();
+      const hasGameType = typeof data.gameType === 'string';
+      const currentGameType = hasGameType ? data.gameType : (state.gameType || 'spy');
       const currentExpected = Number(data.expectedPlayers || 3);
       const currentSpyCount = Number(data.spyCount || 1);
       const currentSpyMode = data.spyMode || 'blind';
@@ -2615,9 +2710,15 @@ async function ensureRoomAndJoin() {
         });
       }
 
+      if (hasGameType && currentGameType !== state.gameType) {
+        throw new Error(`Комната уже в режиме "${currentGameType === 'whoami' ? 'кто я' : 'шпион'}".`);
+      }
+
       if (
         (isOwner || isLobbyStarter) &&
-        (currentExpected !== state.expectedPlayers ||
+        (!hasGameType ||
+          currentGameType !== state.gameType ||
+          currentExpected !== state.expectedPlayers ||
           currentSpyCount !== state.spyCount ||
           currentSpyMode !== state.spyMode ||
           currentGameVariant !== state.gameVariant ||
@@ -2625,6 +2726,7 @@ async function ensureRoomAndJoin() {
           currentDifficulty !== state.locationDifficulty)
       ) {
         tx.update(room, {
+          gameType: state.gameType,
           expectedPlayers: state.expectedPlayers,
           spyCount: state.spyCount,
           spyMode: state.spyMode,
@@ -2634,6 +2736,7 @@ async function ensureRoomAndJoin() {
           updatedAt: serverTimestamp()
         });
       } else {
+        state.gameType = currentGameType;
         state.expectedPlayers = currentExpected;
         state.spyCount = currentSpyCount;
         state.spyMode = currentSpyMode;
@@ -2674,6 +2777,7 @@ async function ensureRoomAndJoin() {
 async function joinRoom() {
   const name = nameInput.value.trim();
   const code = normalizeRoomCode(roomCodeInput.value);
+  const gameType = gameTypeInput.value === 'whoami' ? 'whoami' : 'spy';
   const expected = Number(expectedPlayersInput.value);
   const spyCount = Number(spyCountInput.value);
   const spyMode = spyModeInput.value;
@@ -2696,39 +2800,44 @@ async function joinRoom() {
     return;
   }
 
-  if (!Number.isInteger(expected) || expected < 3 || expected > 20) {
-    joinError.textContent = 'Количество игроков: от 3 до 20.';
-    return;
+  if (gameType === 'spy') {
+    if (!Number.isInteger(expected) || expected < 3 || expected > 20) {
+      joinError.textContent = 'Количество игроков: от 3 до 20.';
+      return;
+    }
   }
 
-  if (!Number.isInteger(spyCount) || ![1, 2].includes(spyCount) || spyCount > Math.max(1, expected - 1)) {
-    joinError.textContent = 'Количество шпионов: только 1 или 2 (и не больше игроков-1).';
-    return;
-  }
+  if (gameType === 'spy') {
+    if (!Number.isInteger(spyCount) || ![1, 2].includes(spyCount) || spyCount > Math.max(1, expected - 1)) {
+      joinError.textContent = 'Количество шпионов: только 1 или 2 (и не больше игроков-1).';
+      return;
+    }
 
-  if (!['blind', 'known'].includes(spyMode)) {
-    joinError.textContent = 'Неизвестный режим шпионов.';
-    return;
-  }
+    if (!['blind', 'known'].includes(spyMode)) {
+      joinError.textContent = 'Неизвестный режим шпионов.';
+      return;
+    }
 
-  if (!['classic', 'classic_roles', 'hide', 'whoami'].includes(gameVariant)) {
-    joinError.textContent = 'Неизвестный вариант игры.';
-    return;
-  }
+    if (!['classic', 'classic_roles', 'hide'].includes(gameVariant)) {
+      joinError.textContent = 'Неизвестный вариант игры.';
+      return;
+    }
 
-  if (!['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip', 'odessa', 'countries'].includes(category)) {
-    joinError.textContent = 'Неизвестная категория.';
-    return;
-  }
+    if (!['all', 'general', 'cinema', 'sport', 'travel', 'work', 'history', 'tech', 'crime', 'extreme', 'vip', 'odessa', 'countries'].includes(category)) {
+      joinError.textContent = 'Неизвестная категория.';
+      return;
+    }
 
-  if (!['all', 'easy', 'medium', 'hard'].includes(difficulty)) {
-    joinError.textContent = 'Неизвестная сложность.';
-    return;
+    if (!['all', 'easy', 'medium', 'hard'].includes(difficulty)) {
+      joinError.textContent = 'Неизвестная сложность.';
+      return;
+    }
   }
 
   joinError.textContent = '';
   state.myName = name;
   state.roomCode = code;
+  state.gameType = gameType;
   state.expectedPlayers = expected;
   state.spyCount = spyCount;
   state.spyMode = spyMode;
@@ -2739,6 +2848,7 @@ async function joinRoom() {
   localStorage.setItem(LOCAL_NAME_KEY, state.myName);
   localStorage.setItem(LOCAL_AVATAR_KEY, state.myAvatar);
   localStorage.setItem(LOCAL_ROOM_KEY, state.roomCode);
+  localStorage.setItem(LOCAL_GAME_TYPE_KEY, state.gameType);
   localStorage.setItem(LOCAL_EXPECTED_KEY, String(state.expectedPlayers));
   localStorage.setItem(LOCAL_SPY_COUNT_KEY, String(state.spyCount));
   localStorage.setItem(LOCAL_SPY_MODE_KEY, state.spyMode);
@@ -2770,20 +2880,25 @@ async function startRound() {
 
   const eligiblePlayers = state.players.filter(isPlayerActive);
   const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
+  const gameType = state.roomData.gameType || state.gameType || 'spy';
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
-  if (eligiblePlayers.length !== expected) {
+  if (gameType === 'spy' && eligiblePlayers.length !== expected) {
     lobbyStatus.textContent = `Нужно ровно ${expected} активных игроков. Сейчас: ${eligiblePlayers.length}.`;
     return;
   }
+  if (gameType === 'whoami' && eligiblePlayers.length < 2) {
+    lobbyStatus.textContent = `Нужно минимум 2 активных игрока. Сейчас: ${eligiblePlayers.length}.`;
+    return;
+  }
 
-  if (gameVariant === 'whoami') {
+  if (gameType === 'whoami') {
     const missingCards = eligiblePlayers.filter((player) => {
       const card = String(player.whoamiCard || '').trim();
-      return card.length === 0;
+      return card.length === 0 || player.whoamiCardAuthorId === player.id;
     });
     if (missingCards.length > 0) {
-      lobbyStatus.textContent = `Не все ввели карточки: ${missingCards.length}/${expected}.`;
+      lobbyStatus.textContent = `Не все получили карточки: ${missingCards.length}/${eligiblePlayers.length}.`;
       return;
     }
 
@@ -2807,7 +2922,7 @@ async function startRound() {
 
         tx.update(room, {
           state: 'started',
-          gameVariant: 'whoami',
+          gameType: 'whoami',
           spyIds: [],
           spyUids: [],
           spyCount: 0,
@@ -2910,6 +3025,7 @@ async function startRound() {
 
       tx.update(room, {
         state: 'started',
+        gameType: 'spy',
         spyIds,
         spyUids,
         spyCount,
@@ -2956,6 +3072,7 @@ async function startRound() {
 
 async function castVote(targetPlayerId) {
   if (!state.roomData || state.roomData.state !== 'started') return;
+  if (isWhoamiGame(state.roomData)) return;
   if (voteByMe()) return;
 
   const me = state.players.find((player) => player.id === state.myId);
@@ -2989,20 +3106,25 @@ async function resetRound() {
 
   const eligiblePlayers = state.players.filter(isPlayerActive);
   const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
+  const gameType = state.roomData.gameType || state.gameType || 'spy';
   const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
-  if (eligiblePlayers.length !== expected) {
+  if (gameType === 'spy' && eligiblePlayers.length !== expected) {
     gameStatus.textContent = `Невозможно начать сразу: нужно ровно ${expected} активных игроков, сейчас ${eligiblePlayers.length}.`;
     return;
   }
+  if (gameType === 'whoami' && eligiblePlayers.length < 2) {
+    gameStatus.textContent = `Нужно минимум 2 активных игрока, сейчас ${eligiblePlayers.length}.`;
+    return;
+  }
 
-  if (gameVariant === 'whoami') {
+  if (gameType === 'whoami') {
     const missingCards = eligiblePlayers.filter((player) => {
       const card = String(player.whoamiCard || '').trim();
-      return card.length === 0;
+      return card.length === 0 || player.whoamiCardAuthorId === player.id;
     });
     if (missingCards.length > 0) {
-      gameStatus.textContent = `Не все ввели карточки: ${missingCards.length}/${expected}.`;
+      gameStatus.textContent = `Не все получили карточки: ${missingCards.length}/${eligiblePlayers.length}.`;
       return;
     }
 
@@ -3021,7 +3143,7 @@ async function resetRound() {
         tx.update(room, {
           state: 'started',
           roundNumber: nextRound,
-          gameVariant: 'whoami',
+          gameType: 'whoami',
           spyIds: [],
           spyUids: [],
           spyCount: 0,
@@ -3052,6 +3174,10 @@ async function resetRound() {
           updateDoc(playerRef(player.id), {
             eliminated: false,
             waiting: false,
+            whoamiCard: deleteField(),
+            whoamiCardAuthorId: deleteField(),
+            whoamiCardAuthorName: deleteField(),
+            whoamiAssignedTo: deleteField(),
             lastSeenAt: serverTimestamp()
           }).catch(() => {})
         )
@@ -3118,6 +3244,7 @@ async function resetRound() {
       tx.update(room, {
         state: 'started',
         roundNumber: nextRound,
+        gameType: 'spy',
         spyIds,
         spyUids,
         spyCount,
@@ -3212,6 +3339,7 @@ function restoreInputs() {
   nameInput.value = state.myName;
   roomCodeInput.value = state.roomCode;
   expectedPlayersInput.value = String(Math.max(3, Math.min(20, state.expectedPlayers || 3)));
+  setGameTypeUI(state.gameType);
   setSpyCountUI(Math.max(1, Math.min(2, state.spyCount || 1)));
   setSpyModeUI(state.spyMode === 'known' ? 'known' : 'blind');
   setGameVariantUI(state.gameVariant);
@@ -3274,6 +3402,13 @@ if (spyCountGrid) {
     });
   });
 }
+if (gameTypeGrid) {
+  gameTypeGrid.querySelectorAll('.mode-cell').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      setGameTypeUI(cell.dataset.gameType || 'spy');
+    });
+  });
+}
 if (spyModeGrid) {
   spyModeGrid.querySelectorAll('.mode-cell').forEach((cell) => {
     cell.addEventListener('click', () => {
@@ -3295,14 +3430,14 @@ if (categoryGrid) {
     });
   });
 }
-if (whoamiSaveBtn && whoamiInput) {
+if (whoamiSaveBtn && whoamiCardInput && whoamiTargetSelect) {
   whoamiSaveBtn.addEventListener('click', () => {
-    updateWhoamiCard(whoamiInput.value);
+    assignWhoamiCard(whoamiTargetSelect.value, whoamiCardInput.value);
   });
-  whoamiInput.addEventListener('keydown', (event) => {
+  whoamiCardInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      updateWhoamiCard(whoamiInput.value);
+      assignWhoamiCard(whoamiTargetSelect.value, whoamiCardInput.value);
     }
   });
 }
@@ -3326,7 +3461,7 @@ roleRevealBtn.addEventListener('click', hideRoleReveal);
 if (whoamiGuessBtn) {
   whoamiGuessBtn.addEventListener('click', async () => {
     if (!state.roomData || state.roomData.state !== 'started') return;
-    if (!isWhoamiVariant(state.roomData)) return;
+    if (!isWhoamiGame(state.roomData)) return;
     const me = state.players.find((player) => player.id === state.myId);
     if (me?.eliminated === true) return;
     const ok = window.confirm('Ты точно угадал свою карточку?');

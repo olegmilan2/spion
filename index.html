@@ -33,76 +33,92 @@
       <input id="nameInput" type="text" maxlength="32" placeholder="Например: Oleg">
       <label for="roomCodeInput" class="label">Код комнаты</label>
       <input id="roomCodeInput" type="text" maxlength="20" placeholder="Например: 1234">
-      <label for="expectedPlayersInput" class="label">Сколько игроков в раунде</label>
-      <input id="expectedPlayersInput" type="number" min="3" max="20" value="3">
-      <p class="label">Вариант игры</p>
-      <div id="gameVariantGrid" class="mode-grid">
-        <button type="button" class="mode-cell active" data-variant="classic">
-          <strong>Классика</strong>
-          <span>Обычная игра без секретных действий</span>
+      <p class="label">Игра</p>
+      <div id="gameTypeGrid" class="mode-grid game-type-grid">
+        <button type="button" class="mode-cell active" data-game-type="spy">
+          <strong>Шпион</strong>
+          <span>Классическая мафия про шпиона</span>
         </button>
-        <button type="button" class="mode-cell" data-variant="classic_roles">
-          <strong>Классика с ролью</strong>
-          <span>Мирные получают роли внутри локации</span>
-        </button>
-        <button type="button" class="mode-cell" data-variant="hide">
-          <strong>Прятки на виду</strong>
-          <span>Шпиону дается секретное действие</span>
-        </button>
-        <button type="button" class="mode-cell" data-variant="whoami">
+        <button type="button" class="mode-cell" data-game-type="whoami">
           <strong>Кто я?</strong>
-          <span>Каждый видит чужую карточку, но не свою</span>
+          <span>Каждый видит чужую карточку</span>
         </button>
       </div>
-      <input id="gameVariantInput" type="hidden" value="classic">
-      <p class="label">Режим шпионов</p>
-      <div id="spyModeGrid" class="mode-grid">
-        <button type="button" class="mode-cell active" data-mode="blind">
-          <strong>Вслепую</strong>
-          <span>Шпионы не знают друг друга</span>
-        </button>
-        <button type="button" class="mode-cell" data-mode="known">
-          <strong>Сговор</strong>
-          <span>Шпионы знают друг друга</span>
-        </button>
+      <input id="gameTypeInput" type="hidden" value="spy">
+      <div id="expectedPlayersWrap">
+        <label for="expectedPlayersInput" class="label">Сколько игроков в раунде</label>
+        <input id="expectedPlayersInput" type="number" min="3" max="20" value="3">
       </div>
-      <input id="spyModeInput" type="hidden" value="blind">
-      <p class="label">Сколько шпионов</p>
-      <div id="spyCountGrid" class="mode-grid spy-count-grid">
-        <button type="button" class="mode-cell spy-count-cell active" data-spy-count="1">
-          <strong>1 шпион</strong>
-          <span>Классический режим</span>
-        </button>
-        <button type="button" class="mode-cell spy-count-cell" data-spy-count="2">
-          <strong>2 шпиона</strong>
-          <span>Сложнее для мирных</span>
-        </button>
+      <div id="variantSettings">
+        <p class="label">Вариант игры</p>
+        <div id="gameVariantGrid" class="mode-grid">
+          <button type="button" class="mode-cell active" data-variant="classic">
+            <strong>Классика</strong>
+            <span>Обычная игра без секретных действий</span>
+          </button>
+          <button type="button" class="mode-cell" data-variant="classic_roles">
+            <strong>Классика с ролью</strong>
+            <span>Мирные получают роли внутри локации</span>
+          </button>
+          <button type="button" class="mode-cell" data-variant="hide">
+            <strong>Прятки на виду</strong>
+            <span>Шпиону дается секретное действие</span>
+          </button>
+        </div>
+        <input id="gameVariantInput" type="hidden" value="classic">
       </div>
-      <input id="spyCountInput" type="hidden" value="1">
-      <p class="label">Категория локаций</p>
-      <div id="categoryGrid" class="mode-grid category-grid">
-        <button type="button" class="mode-cell category-cell active" data-category="all"><strong>🌍 Все</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="general"><strong>🏙️ Общее</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="cinema"><strong>🎬 Кино</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="sport"><strong>⚽ Спорт</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="travel"><strong>✈️ Путешествия</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="work"><strong>💼 Работа</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="history"><strong>🏛️ История</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="tech"><strong>🤖 Технологии</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="crime"><strong>🕵️ Криминал</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="extreme"><strong>🧗 Экстрим</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="vip"><strong>💎 VIP</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="odessa"><strong>⚓ Одесса</strong></button>
-        <button type="button" class="mode-cell category-cell" data-category="countries"><strong>🌐 Страны</strong></button>
+      <div id="spySettings">
+        <p class="label">Режим шпионов</p>
+        <div id="spyModeGrid" class="mode-grid">
+          <button type="button" class="mode-cell active" data-mode="blind">
+            <strong>Вслепую</strong>
+            <span>Шпионы не знают друг друга</span>
+          </button>
+          <button type="button" class="mode-cell" data-mode="known">
+            <strong>Сговор</strong>
+            <span>Шпионы знают друг друга</span>
+          </button>
+        </div>
+        <input id="spyModeInput" type="hidden" value="blind">
+        <p class="label">Сколько шпионов</p>
+        <div id="spyCountGrid" class="mode-grid spy-count-grid">
+          <button type="button" class="mode-cell spy-count-cell active" data-spy-count="1">
+            <strong>1 шпион</strong>
+            <span>Классический режим</span>
+          </button>
+          <button type="button" class="mode-cell spy-count-cell" data-spy-count="2">
+            <strong>2 шпиона</strong>
+            <span>Сложнее для мирных</span>
+          </button>
+        </div>
+        <input id="spyCountInput" type="hidden" value="1">
       </div>
-      <input id="categoryInput" type="hidden" value="all">
-      <label for="difficultyInput" class="label">Сложность</label>
-      <select id="difficultyInput">
-        <option value="all">Любая</option>
-        <option value="easy">Легкая</option>
-        <option value="medium">Средняя</option>
-        <option value="hard">Сложная</option>
-      </select>
+      <div id="locationSettings">
+        <p class="label">Категория локаций</p>
+        <div id="categoryGrid" class="mode-grid category-grid">
+          <button type="button" class="mode-cell category-cell active" data-category="all"><strong>🌍 Все</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="general"><strong>🏙️ Общее</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="cinema"><strong>🎬 Кино</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="sport"><strong>⚽ Спорт</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="travel"><strong>✈️ Путешествия</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="work"><strong>💼 Работа</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="history"><strong>🏛️ История</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="tech"><strong>🤖 Технологии</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="crime"><strong>🕵️ Криминал</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="extreme"><strong>🧗 Экстрим</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="vip"><strong>💎 VIP</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="odessa"><strong>⚓ Одесса</strong></button>
+          <button type="button" class="mode-cell category-cell" data-category="countries"><strong>🌐 Страны</strong></button>
+        </div>
+        <input id="categoryInput" type="hidden" value="all">
+        <label for="difficultyInput" class="label">Сложность</label>
+        <select id="difficultyInput">
+          <option value="all">Любая</option>
+          <option value="easy">Легкая</option>
+          <option value="medium">Средняя</option>
+          <option value="hard">Сложная</option>
+        </select>
+      </div>
       <button id="joinBtn" class="btn btn-primary">Войти в комнату</button>
       <p id="joinError" class="error"></p>
       <p id="globalStatus" class="hint"></p>
@@ -125,12 +141,15 @@
       <p class="hint">Игроки в комнате: <span id="roomOnlineCount">0</span></p>
       <ul id="playersList" class="players-list"></ul>
       <div id="whoamiLobby" class="whoami-lobby hidden">
-        <p class="hint">Твоя карточка (видят другие):</p>
+        <p class="hint">Выбери игрока и напиши ему карточку:</p>
         <div class="whoami-input">
-          <input id="whoamiInput" type="text" maxlength="48" placeholder="Например: Гарри Поттер">
+          <select id="whoamiTargetSelect"></select>
+          <input id="whoamiCardInput" type="text" maxlength="48" placeholder="Например: Гарри Поттер">
           <button id="whoamiSaveBtn" class="btn" type="button">Сохранить</button>
         </div>
         <p id="whoamiStatus" class="hint"></p>
+        <p class="hint">Карточки игроков:</p>
+        <ul id="whoamiLobbyList" class="players-list"></ul>
       </div>
       <div class="actions">
         <button id="startRoundBtn" class="btn btn-primary">Старт раунда</button>
