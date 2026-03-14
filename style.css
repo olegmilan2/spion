@@ -841,6 +841,21 @@ select:focus {
   gap: 10px;
 }
 
+.whoami-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.whoami-input input {
+  width: 100%;
+}
+
+.whoami-panel {
+  margin: 6px 0 16px;
+}
+
 .player-item {
   border: 1px solid rgba(255, 255, 255, 0.78);
   background: linear-gradient(130deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.48));

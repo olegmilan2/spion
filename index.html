@@ -49,6 +49,10 @@
           <strong>Прятки на виду</strong>
           <span>Шпиону дается секретное действие</span>
         </button>
+        <button type="button" class="mode-cell" data-variant="whoami">
+          <strong>Кто я?</strong>
+          <span>Каждый видит чужую карточку, но не свою</span>
+        </button>
       </div>
       <input id="gameVariantInput" type="hidden" value="classic">
       <p class="label">Режим шпионов</p>
@@ -120,6 +124,14 @@
       <h2>Лобби</h2>
       <p class="hint">Игроки в комнате: <span id="roomOnlineCount">0</span></p>
       <ul id="playersList" class="players-list"></ul>
+      <div id="whoamiLobby" class="whoami-lobby hidden">
+        <p class="hint">Твоя карточка (видят другие):</p>
+        <div class="whoami-input">
+          <input id="whoamiInput" type="text" maxlength="48" placeholder="Например: Гарри Поттер">
+          <button id="whoamiSaveBtn" class="btn" type="button">Сохранить</button>
+        </div>
+        <p id="whoamiStatus" class="hint"></p>
+      </div>
       <div class="actions">
         <button id="startRoundBtn" class="btn btn-primary">Старт раунда</button>
         <button id="leaveRoomBtn" class="btn">Выйти</button>
@@ -140,9 +152,14 @@
         <p id="gameRoundText">Раунд #1</p>
       </div>
       <div id="roundAlert" class="round-alert hidden"></div>
-      <h2>Роль</h2>
+      <h2 id="gameTitle">Роль</h2>
       <div id="roleCard" class="role-card"></div>
       <p id="roleHint" class="hint"></p>
+      <div id="whoamiPanel" class="whoami-panel hidden">
+        <p class="hint">Карточки других игроков:</p>
+        <ul id="whoamiList" class="players-list"></ul>
+        <button id="whoamiGuessBtn" class="btn" type="button">Я угадал свою карточку</button>
+      </div>
       <p class="hint">Онлайн в игре: <span id="globalOnlineCount">0</span></p>
       <ul id="globalPlayersList" class="players-list"></ul>
       <div id="votePanel" class="vote-panel">

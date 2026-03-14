@@ -858,6 +858,10 @@ const lobbyTopName = document.getElementById('lobbyTopName');
 const playersList = document.getElementById('playersList');
 const roomOnlineCount = document.getElementById('roomOnlineCount');
 const lobbyStatus = document.getElementById('lobbyStatus');
+const whoamiLobby = document.getElementById('whoamiLobby');
+const whoamiInput = document.getElementById('whoamiInput');
+const whoamiSaveBtn = document.getElementById('whoamiSaveBtn');
+const whoamiStatus = document.getElementById('whoamiStatus');
 const startRoundBtn = document.getElementById('startRoundBtn');
 const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 
@@ -867,8 +871,12 @@ const gameRoundText = document.getElementById('gameRoundText');
 const gameTopAvatar = document.getElementById('gameTopAvatar');
 const gameTopName = document.getElementById('gameTopName');
 const roundAlert = document.getElementById('roundAlert');
+const gameTitle = document.getElementById('gameTitle');
 const roleCard = document.getElementById('roleCard');
 const roleHint = document.getElementById('roleHint');
+const whoamiPanel = document.getElementById('whoamiPanel');
+const whoamiList = document.getElementById('whoamiList');
+const whoamiGuessBtn = document.getElementById('whoamiGuessBtn');
 const votePanel = document.getElementById('votePanel');
 const voteCandidates = document.getElementById('voteCandidates');
 const voteStatus = document.getElementById('voteStatus');
@@ -1005,7 +1013,7 @@ function setSpyCountUI(count) {
 }
 
 function setGameVariantUI(variant) {
-  const allowed = ['classic', 'classic_roles', 'hide'];
+  const allowed = ['classic', 'classic_roles', 'hide', 'whoami'];
   gameVariantInput.value = allowed.includes(variant) ? variant : 'classic';
   if (gameVariantGrid) {
     const cells = gameVariantGrid.querySelectorAll('.mode-cell');
@@ -1040,7 +1048,7 @@ function renderRules() {
   if (!rulesMeta || !rulesList) return;
   const spyCount = Number(spyCountInput.value) === 2 ? 2 : 1;
   const spyMode = spyModeInput.value === 'known' ? 'known' : 'blind';
-  const gameVariant = ['classic', 'classic_roles', 'hide'].includes(gameVariantInput.value)
+  const gameVariant = ['classic', 'classic_roles', 'hide', 'whoami'].includes(gameVariantInput.value)
     ? gameVariantInput.value
     : 'classic';
   const spyModeLabel = spyMode === 'known' ? 'сговор' : 'вслепую';
@@ -1048,7 +1056,27 @@ function renderRules() {
     ? 'прятки на виду'
     : gameVariant === 'classic_roles'
       ? 'классика с ролью'
-      : 'классика';
+      : gameVariant === 'whoami'
+        ? 'кто я'
+        : 'классика';
+
+  if (gameVariant === 'whoami') {
+    rulesMeta.textContent = 'Текущие правила: режим "Кто я?".';
+    const items = [
+      'Все игроки вводят один и тот же код комнаты и ждут полный состав в лобби.',
+      'Каждый игрок вводит свою карточку. Ее видят остальные, но не он сам.',
+      'Игра начинается, когда все участники ввели карточки.',
+      'Игроки задают вопросы и пытаются угадать свою карточку.',
+      'Кто угадал — нажимает кнопку "Я угадал", выходит из игры, остальные продолжают.'
+    ];
+    rulesList.innerHTML = '';
+    items.forEach((text) => {
+      const li = document.createElement('li');
+      li.textContent = text;
+      rulesList.appendChild(li);
+    });
+    return;
+  }
 
   rulesMeta.textContent = `Текущие правила: ${spyCount} шпион(а), режим ${spyModeLabel}, вариант ${gameVariantLabel}.`;
 
@@ -1664,6 +1692,99 @@ function renderPlayers() {
   });
 }
 
+function isWhoamiVariant(room = state.roomData) {
+  const variant = room?.gameVariant || state.gameVariant || 'classic';
+  return variant === 'whoami';
+}
+
+function syncWhoamiInputFromPlayer() {
+  if (!whoamiInput) return;
+  if (document.activeElement === whoamiInput) return;
+  const me = state.players.find((player) => player.id === state.myId);
+  const value = String(me?.whoamiCard || '').trim();
+  if (value && whoamiInput.value !== value) {
+    whoamiInput.value = value;
+  }
+}
+
+async function updateWhoamiCard(value) {
+  if (!state.db || !state.roomCode) return;
+  const card = String(value || '').trim().slice(0, 48);
+  if (!card) {
+    if (whoamiStatus) whoamiStatus.textContent = 'Карточка не может быть пустой.';
+    return;
+  }
+  try {
+    await updateDoc(playerRef(state.myId), {
+      whoamiCard: card,
+      lastSeenAt: serverTimestamp()
+    });
+    if (whoamiStatus) whoamiStatus.textContent = 'Карточка сохранена.';
+  } catch (error) {
+    if (whoamiStatus) whoamiStatus.textContent = `Ошибка сохранения: ${error.message}`;
+  }
+}
+
+function renderWhoamiPanel() {
+  if (!whoamiPanel || !whoamiList) return;
+  whoamiList.innerHTML = '';
+  const others = state.players.filter((player) => player.id !== state.myId);
+  if (others.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'player-item empty';
+    li.textContent = 'Пока нет других игроков';
+    whoamiList.appendChild(li);
+    return;
+  }
+
+  const sorted = [...others].sort((a, b) => {
+    const joinedA = toMillis(a.joinedAt);
+    const joinedB = toMillis(b.joinedAt);
+    if (joinedA !== joinedB) return joinedA - joinedB;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+
+  sorted.forEach((player) => {
+    const li = document.createElement('li');
+    li.className = 'player-item';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'player-avatar';
+    if (player.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = player.avatarUrl;
+      img.alt = player.name || 'avatar';
+      img.addEventListener('error', () => {
+        avatar.textContent = getInitials(player.name);
+      });
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getInitials(player.name);
+    }
+
+    const main = document.createElement('div');
+    main.className = 'player-main';
+    const name = document.createElement('p');
+    name.className = 'player-name';
+    name.textContent = player.name || 'Игрок';
+    const sub = document.createElement('p');
+    sub.className = 'player-sub';
+    const card = String(player.whoamiCard || '').trim();
+    sub.textContent = card ? `карточка: ${card}` : 'карточка не указана';
+    main.appendChild(name);
+    main.appendChild(sub);
+
+    const badge = document.createElement('span');
+    badge.className = `player-badge${isPlayerActive(player) ? '' : ' offline'}`;
+    badge.textContent = isPlayerActive(player) ? 'онлайн' : 'оффлайн';
+
+    li.appendChild(avatar);
+    li.appendChild(main);
+    li.appendChild(badge);
+    whoamiList.appendChild(li);
+  });
+}
+
 function renderGlobalPresence() {
   if (!globalPlayersList) return;
   globalPlayersList.innerHTML = '';
@@ -2066,6 +2187,7 @@ function renderRoom() {
   const roomSpyCount = Number(room.spyCount || state.spyCount || 1);
   const roomSpyMode = room.spyMode || state.spyMode || 'blind';
   const roomGameVariant = room.gameVariant || state.gameVariant || 'classic';
+  const isWhoami = roomGameVariant === 'whoami';
   const roomQuickQuestions = Array.isArray(room.quickQuestions) && room.quickQuestions.length > 0
     ? room.quickQuestions
     : QUICK_QUESTIONS;
@@ -2089,6 +2211,7 @@ function renderRoom() {
   renderTopAvatar(gameTopAvatar, topAvatar, topName);
 
   renderPlayers();
+  syncWhoamiInputFromPlayer();
 
   if (room.state === 'started' || room.state === 'finished') {
     setVisible('game');
@@ -2100,16 +2223,42 @@ function renderRoom() {
     const iAmSpy = spyIds.includes(state.myId) || spyUids.includes(state.authUid);
     const revealToken = buildRoundRevealToken(room);
     const playersReady = state.players.length > 0;
-    if (room.state === 'started' && playersReady && revealToken !== state.lastRevealToken) {
+    if (!isWhoami && room.state === 'started' && playersReady && revealToken !== state.lastRevealToken) {
       state.lastRevealToken = revealToken;
       showRoleReveal(room, iAmSpy, iAmEliminated);
     }
 
+    if (gameTitle) {
+      gameTitle.textContent = isWhoami ? 'Кто я?' : 'Роль';
+    }
     roleCard.className = 'role-card';
     roleCard.textContent = 'Личные данные роли скрыты в игре.';
     roleHint.textContent = iAmEliminated
       ? 'Ты в режиме ожидания. При необходимости нажми на карточку роли.'
       : 'Если забыл роль, нажми на карточку или кнопку "Показать карту".';
+
+    if (isWhoami) {
+      hideRoleReveal();
+      if (roleCard) roleCard.classList.add('hidden');
+      if (roleHint) roleHint.classList.add('hidden');
+      if (showRoleCardBtn) showRoleCardBtn.classList.add('hidden');
+      if (votePanel) votePanel.classList.add('hidden');
+      if (quickQuestions) quickQuestions.classList.add('hidden');
+      if (whoamiPanel) whoamiPanel.classList.remove('hidden');
+      renderWhoamiPanel();
+      if (whoamiGuessBtn) {
+        whoamiGuessBtn.disabled = iAmEliminated;
+      }
+      gameStatus.textContent = iAmEliminated
+        ? 'Ты уже угадал свою карточку. Игра продолжается.'
+        : 'Задавай вопросы и постарайся угадать свою карточку.';
+      renderChat();
+      return;
+    }
+    if (whoamiPanel) whoamiPanel.classList.add('hidden');
+    if (roleCard) roleCard.classList.remove('hidden');
+    if (roleHint) roleHint.classList.remove('hidden');
+    if (showRoleCardBtn) showRoleCardBtn.classList.remove('hidden');
 
     if (room.state === 'finished' && room.lastVoteResult === 'all_spies_found') {
       roundAlert.className = 'round-alert success';
@@ -2151,12 +2300,27 @@ function renderRoom() {
       ? 'прятки на виду'
       : roomGameVariant === 'classic_roles'
         ? 'классика с ролью'
-        : 'классика';
+        : roomGameVariant === 'whoami'
+          ? 'кто я'
+          : 'классика';
     const roomCategoryLabel = formatCategoryLabel(roomCategory);
     const roomDifficultyLabel = formatDifficultyLabel(roomDifficulty);
-    lobbyStatus.textContent = activeCount === expected
-      ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
-      : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`;
+    if (isWhoami) {
+      const cardsReady = state.players.filter((player) => {
+        const card = String(player.whoamiCard || '').trim();
+        return isPlayerActive(player) && card.length > 0;
+      }).length;
+      lobbyStatus.textContent = activeCount === expected
+        ? `Готово к старту. Игроков: ${activeCount}/${expected}. Карточки: ${cardsReady}/${expected}. Вариант: ${gameVariantLabel}.`
+        : `Ожидаем игроков: ${activeCount}/${expected}. Карточки: ${cardsReady}/${expected}. Вариант: ${gameVariantLabel}.`;
+    } else {
+      lobbyStatus.textContent = activeCount === expected
+        ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
+        : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${roomSpyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`;
+    }
+    if (whoamiLobby) {
+      whoamiLobby.classList.toggle('hidden', !isWhoami);
+    }
   }
 }
 
@@ -2316,6 +2480,10 @@ function subscribeRoom() {
         recoverRoomToLobby();
       }
       renderPlayers();
+      syncWhoamiInputFromPlayer();
+      if (state.roomData && isWhoamiVariant(state.roomData) && (state.roomData.state === 'started' || state.roomData.state === 'finished')) {
+        renderWhoamiPanel();
+      }
       if (state.roomData && state.roomData.state !== 'started') {
         const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
         const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
@@ -2326,14 +2494,32 @@ function subscribeRoom() {
           ? 'прятки на виду'
           : gameVariant === 'classic_roles'
             ? 'классика с ролью'
-            : 'классика';
+            : gameVariant === 'whoami'
+              ? 'кто я'
+              : 'классика';
         const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
         const roomDifficulty = state.roomData.locationDifficulty || state.locationDifficulty || 'all';
         const roomCategoryLabel = formatCategoryLabel(roomCategory);
         const roomDifficultyLabel = formatDifficultyLabel(roomDifficulty);
-        lobbyStatus.textContent = activeCount === expected
-          ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
-          : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`;
+        if (gameVariant === 'whoami') {
+          const cardsReady = state.players.filter((player) => {
+            const card = String(player.whoamiCard || '').trim();
+            return isPlayerActive(player) && card.length > 0;
+          }).length;
+          lobbyStatus.textContent = activeCount === expected
+            ? `Готово к старту. Игроков: ${activeCount}/${expected}. Карточки: ${cardsReady}/${expected}. Вариант: ${gameVariantLabel}.`
+            : `Ожидаем игроков: ${activeCount}/${expected}. Карточки: ${cardsReady}/${expected}. Вариант: ${gameVariantLabel}.`;
+          if (whoamiLobby) {
+            whoamiLobby.classList.remove('hidden');
+          }
+        } else {
+          lobbyStatus.textContent = activeCount === expected
+            ? `Готово к старту. Игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`
+            : `Ожидаем игроков: ${activeCount}/${expected}. Шпионов: ${spyCount} (${spyModeLabel}). Вариант: ${gameVariantLabel}. Фильтр: ${roomCategoryLabel}/${roomDifficultyLabel}.`;
+          if (whoamiLobby) {
+            whoamiLobby.classList.add('hidden');
+          }
+        }
       }
     },
     (error) => {
@@ -2525,7 +2711,7 @@ async function joinRoom() {
     return;
   }
 
-  if (!['classic', 'classic_roles', 'hide'].includes(gameVariant)) {
+  if (!['classic', 'classic_roles', 'hide', 'whoami'].includes(gameVariant)) {
     joinError.textContent = 'Неизвестный вариант игры.';
     return;
   }
@@ -2584,9 +2770,83 @@ async function startRound() {
 
   const eligiblePlayers = state.players.filter(isPlayerActive);
   const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
+  const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
   if (eligiblePlayers.length !== expected) {
     lobbyStatus.textContent = `Нужно ровно ${expected} активных игроков. Сейчас: ${eligiblePlayers.length}.`;
+    return;
+  }
+
+  if (gameVariant === 'whoami') {
+    const missingCards = eligiblePlayers.filter((player) => {
+      const card = String(player.whoamiCard || '').trim();
+      return card.length === 0;
+    });
+    if (missingCards.length > 0) {
+      lobbyStatus.textContent = `Не все ввели карточки: ${missingCards.length}/${expected}.`;
+      return;
+    }
+
+    try {
+      await runTransaction(state.db, async (tx) => {
+        const room = roomRef();
+        const snap = await tx.get(room);
+
+        if (!snap.exists()) {
+          throw new Error('Комната не найдена');
+        }
+
+        const data = snap.data();
+        if (data.state === 'started') {
+          throw new Error('Раунд уже запущен другим игроком');
+        }
+        const starterId = data.lobbyStarterId || data.ownerId || '';
+        if (starterId && starterId !== state.myId) {
+          throw new Error('Только первый вошедший в лобби может начать игру');
+        }
+
+        tx.update(room, {
+          state: 'started',
+          gameVariant: 'whoami',
+          spyIds: [],
+          spyUids: [],
+          spyCount: 0,
+          spyMode: deleteField(),
+          spyActions: {},
+          civilianRoles: {},
+          location: deleteField(),
+          lastLocation: deleteField(),
+          locationCategory: deleteField(),
+          locationDifficulty: deleteField(),
+          locationHistory: deleteField(),
+          quickQuestions: deleteField(),
+          eliminatedPlayerId: deleteField(),
+          eliminatedPlayerName: deleteField(),
+          lastVoteResult: deleteField(),
+          winner: deleteField(),
+          foundSpyIds: [],
+          voteStage: deleteField(),
+          resolvedVoteStage: deleteField(),
+          startedBy: state.myId,
+          startedAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      });
+
+      await Promise.all(
+        state.players.map((player) =>
+          updateDoc(playerRef(player.id), {
+            eliminated: false,
+            waiting: false,
+            lastSeenAt: serverTimestamp()
+          }).catch(() => {})
+        )
+      );
+
+      lobbyStatus.textContent = 'Раунд "Кто я?" запущен.';
+    } catch (error) {
+      lobbyStatus.textContent = `Старт отклонен: ${error.message}`;
+    }
     return;
   }
 
@@ -2598,7 +2858,6 @@ async function startRound() {
   const spyPlayers = pickDistinct(eligiblePlayers, spyCount);
   const spyIds = spyPlayers.map((p) => p.id);
   const spyUids = spyPlayers.map((p) => p.uid || '').filter(Boolean);
-  const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
   const civilianPlayers = eligiblePlayers.filter((player) => !spyIds.includes(player.id));
   const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
@@ -2730,9 +2989,78 @@ async function resetRound() {
 
   const eligiblePlayers = state.players.filter(isPlayerActive);
   const expected = Number(state.roomData.expectedPlayers || state.expectedPlayers || 3);
+  const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const spyCount = Number(state.roomData.spyCount || state.spyCount || 1);
   if (eligiblePlayers.length !== expected) {
     gameStatus.textContent = `Невозможно начать сразу: нужно ровно ${expected} активных игроков, сейчас ${eligiblePlayers.length}.`;
+    return;
+  }
+
+  if (gameVariant === 'whoami') {
+    const missingCards = eligiblePlayers.filter((player) => {
+      const card = String(player.whoamiCard || '').trim();
+      return card.length === 0;
+    });
+    if (missingCards.length > 0) {
+      gameStatus.textContent = `Не все ввели карточки: ${missingCards.length}/${expected}.`;
+      return;
+    }
+
+    try {
+      await runTransaction(state.db, async (tx) => {
+        const room = roomRef();
+        const snap = await tx.get(room);
+
+        if (!snap.exists()) {
+          throw new Error('Комната не найдена');
+        }
+
+        const data = snap.data();
+        const nextRound = (data.roundNumber || 1) + 1;
+
+        tx.update(room, {
+          state: 'started',
+          roundNumber: nextRound,
+          gameVariant: 'whoami',
+          spyIds: [],
+          spyUids: [],
+          spyCount: 0,
+          spyMode: deleteField(),
+          spyActions: {},
+          civilianRoles: {},
+          location: deleteField(),
+          lastLocation: deleteField(),
+          locationCategory: deleteField(),
+          locationDifficulty: deleteField(),
+          locationHistory: deleteField(),
+          quickQuestions: deleteField(),
+          eliminatedPlayerId: deleteField(),
+          eliminatedPlayerName: deleteField(),
+          lastVoteResult: deleteField(),
+          winner: deleteField(),
+          foundSpyIds: [],
+          voteStage: deleteField(),
+          resolvedVoteStage: deleteField(),
+          startedBy: state.myId,
+          startedAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      });
+
+      await Promise.all(
+        state.players.map((player) =>
+          updateDoc(playerRef(player.id), {
+            eliminated: false,
+            waiting: false,
+            lastSeenAt: serverTimestamp()
+          }).catch(() => {})
+        )
+      );
+
+      gameStatus.textContent = 'Новый раунд "Кто я?" запущен.';
+    } catch (error) {
+      gameStatus.textContent = `Ошибка нового раунда: ${error.message}`;
+    }
     return;
   }
 
@@ -2744,7 +3072,6 @@ async function resetRound() {
   const spyPlayers = pickDistinct(eligiblePlayers, spyCount);
   const spyIds = spyPlayers.map((p) => p.id);
   const spyUids = spyPlayers.map((p) => p.uid || '').filter(Boolean);
-  const gameVariant = state.roomData.gameVariant || state.gameVariant || 'classic';
   const secretActions = gameVariant === 'hide' ? pickSecretActions(spyIds.length) : [];
   const civilianPlayers = eligiblePlayers.filter((player) => !spyIds.includes(player.id));
   const roomCategory = state.roomData.locationCategory || state.locationCategory || 'all';
@@ -2968,6 +3295,17 @@ if (categoryGrid) {
     });
   });
 }
+if (whoamiSaveBtn && whoamiInput) {
+  whoamiSaveBtn.addEventListener('click', () => {
+    updateWhoamiCard(whoamiInput.value);
+  });
+  whoamiInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      updateWhoamiCard(whoamiInput.value);
+    }
+  });
+}
 avatarPickerBtn.addEventListener('click', () => {
   avatarFileInput.click();
 });
@@ -2985,6 +3323,25 @@ avatarFileInput.addEventListener('change', async () => {
 });
 chatSendBtn.addEventListener('click', sendChatMessage);
 roleRevealBtn.addEventListener('click', hideRoleReveal);
+if (whoamiGuessBtn) {
+  whoamiGuessBtn.addEventListener('click', async () => {
+    if (!state.roomData || state.roomData.state !== 'started') return;
+    if (!isWhoamiVariant(state.roomData)) return;
+    const me = state.players.find((player) => player.id === state.myId);
+    if (me?.eliminated === true) return;
+    const ok = window.confirm('Ты точно угадал свою карточку?');
+    if (!ok) return;
+    try {
+      await updateDoc(playerRef(state.myId), {
+        eliminated: true,
+        lastSeenAt: serverTimestamp()
+      });
+      gameStatus.textContent = 'Отлично! Ты вышел из игры, остальные продолжают.';
+    } catch (error) {
+      gameStatus.textContent = `Ошибка: ${error.message}`;
+    }
+  });
+}
 chatInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
     event.preventDefault();
